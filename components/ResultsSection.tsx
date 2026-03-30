@@ -1,11 +1,14 @@
 import type { MergedData, YearRates, TooltipState, ComputedStats, ComputedComparison } from '@/lib/types'
+import type { ChartData } from '@/lib/chartData'
 import DateRangeInfo from './DateRangeInfo'
 import Heatmap from './Heatmap'
 import HeatmapLegend from './HeatmapLegend'
 import StatsCards from './StatsCards'
 import CompareSection from './CompareSection'
+import ChartsSection from './ChartsSection'
 
 interface Props {
+  activeTab: 'heatmap' | 'charts'
   allDates: string[]
   mergedData: MergedData
   fileCount: number
@@ -16,11 +19,13 @@ interface Props {
   evMode: boolean
   stats: ComputedStats
   comparison: ComputedComparison
+  chartData: ChartData
   onCellHover: (state: TooltipState) => void
   onCellLeave: () => void
 }
 
 export default function ResultsSection({
+  activeTab,
   allDates,
   mergedData,
   fileCount,
@@ -31,6 +36,7 @@ export default function ResultsSection({
   evMode,
   stats,
   comparison,
+  chartData,
   onCellHover,
   onCellLeave,
 }: Props) {
@@ -50,25 +56,29 @@ export default function ResultsSection({
         />
       </div>
 
-      {/* Heatmap card — intrinsic width, centered by the flex parent */}
-      <div className="bg-surface rounded-[14px] px-5 py-6 pb-4 border border-[rgba(255,255,255,0.06)] shadow-[0_24px_64px_rgba(0,0,0,0.55)] overflow-x-auto max-w-[calc(100vw-40px)]">
-        <div className="flex justify-center">
-          <Heatmap
-            allDates={allDates}
-            mergedData={mergedData}
-            userRates={userRates}
-            feriadosMap={feriadosMap}
-            maxV={maxV}
-            evMode={evMode}
-            onCellHover={onCellHover}
-            onCellLeave={onCellLeave}
-          />
+      {activeTab === 'heatmap' ? (
+        /* Heatmap card — intrinsic width, centered */
+        <div className="bg-surface rounded-[14px] px-5 py-6 pb-4 border border-[rgba(255,255,255,0.06)] shadow-[0_24px_64px_rgba(0,0,0,0.55)] overflow-x-auto max-w-[calc(100vw-40px)]">
+          <div className="flex justify-center">
+            <Heatmap
+              allDates={allDates}
+              mergedData={mergedData}
+              userRates={userRates}
+              feriadosMap={feriadosMap}
+              maxV={maxV}
+              evMode={evMode}
+              onCellHover={onCellHover}
+              onCellLeave={onCellLeave}
+            />
+          </div>
+          <div className="max-w-content mx-auto">
+            <HeatmapLegend maxV={maxV} />
+            <StatsCards stats={stats} />
+          </div>
         </div>
-        <div className="max-w-content mx-auto">
-          <HeatmapLegend maxV={maxV} />
-          <StatsCards stats={stats} />
-        </div>
-      </div>
+      ) : (
+        <ChartsSection chartData={chartData} />
+      )}
 
       {/* Comparison — centered, 860px max */}
       <div className="w-full max-w-content">

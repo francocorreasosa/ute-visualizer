@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { useAppState } from '@/hooks/useAppState'
 import { parseCSV } from '@/lib/parseCSV'
 import { computeAll } from '@/lib/compute'
+import { computeChartData } from '@/lib/chartData'
 import { DEMO_CSV } from '@/lib/constants'
 import { parseNum } from '@/lib/format'
 import type { YearRates, TooltipState } from '@/lib/types'
@@ -16,14 +17,21 @@ import ResultsSection from '@/components/ResultsSection'
 import EmptyState from '@/components/EmptyState'
 import Tooltip from '@/components/Tooltip'
 import LegalDisclaimer from '@/components/LegalDisclaimer'
+import TabBar from '@/components/TabBar'
 
 export default function Page() {
   const [state, dispatch] = useAppState()
   const { mergedData, loadedFiles, detectedYears, userRates, feriadosMap, evMode, tooltip } = state
+  const [activeTab, setActiveTab] = useState<'heatmap' | 'charts'>('heatmap')
 
   // Single computation pass — only re-runs when inputs change
   const { allDates, maxV, stats, comparison } = useMemo(
     () => computeAll(mergedData, userRates, feriadosMap, evMode),
+    [mergedData, userRates, feriadosMap, evMode]
+  )
+
+  const chartData = useMemo(
+    () => computeChartData(mergedData, userRates, feriadosMap, evMode),
     [mergedData, userRates, feriadosMap, evMode]
   )
 
@@ -126,20 +134,25 @@ export default function Page() {
 
       {/* Results — full viewport width so heatmap doesn't force-scroll on wide screens */}
       {hasData ? (
-        <ResultsSection
-          allDates={allDates}
-          mergedData={mergedData}
-          fileCount={loadedFiles.length}
-          detectedYears={detectedYears}
-          userRates={userRates}
-          feriadosMap={feriadosMap}
-          maxV={maxV}
-          evMode={evMode}
-          stats={stats}
-          comparison={comparison}
-          onCellHover={handleCellHover}
-          onCellLeave={handleCellLeave}
-        />
+        <>
+          <TabBar activeTab={activeTab} onChange={setActiveTab} />
+          <ResultsSection
+            activeTab={activeTab}
+            allDates={allDates}
+            mergedData={mergedData}
+            fileCount={loadedFiles.length}
+            detectedYears={detectedYears}
+            userRates={userRates}
+            feriadosMap={feriadosMap}
+            maxV={maxV}
+            evMode={evMode}
+            stats={stats}
+            comparison={comparison}
+            chartData={chartData}
+            onCellHover={handleCellHover}
+            onCellLeave={handleCellLeave}
+          />
+        </>
       ) : (
         <EmptyState />
       )}
