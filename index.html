@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heatmap UTE - Análisis Tarifario</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'DM Sans',sans-serif;
+    background:#07090f;color:#c8cdd8;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:36px 20px 48px;
+  }
+  .header{text-align:center;margin-bottom:8px}
+  .header h1{
+    font-size:26px;font-weight:700;letter-spacing:-0.5px;
+    background:linear-gradient(135deg,#ff6b2b,#e63946,#b5179e);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    margin-bottom:4px;
+  }
+  .header .sub{font-size:13px;color:#4b5563;font-family:'JetBrains Mono',monospace}
+  .upload-zone{
+    margin:20px 0 24px;width:100%;max-width:860px;
+    border:2px dashed #2d3548;border-radius:14px;
+    padding:28px 24px;text-align:center;cursor:pointer;
+    transition:border-color .2s,background .2s;
+    background:#0f1219;position:relative;
+  }
+  .upload-zone:hover,.upload-zone.dragover{border-color:#ff6b2b;background:rgba(255,107,43,0.04)}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .upload-icon{font-size:36px;margin-bottom:8px}
+  .upload-text{font-family:'JetBrains Mono',monospace;font-size:13px;color:#6b7280}
+  .upload-text b{color:#ff6b2b}
+  .upload-hint{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#4b5563;margin-top:6px}
+  .file-loaded{display:inline-flex;align-items:center;gap:8px;background:#1e293b;border-radius:8px;padding:6px 14px;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#22c55e}
+  .files-list{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .file-chip{
+    background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 10px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9ca3af;
+    display:flex;align-items:center;gap:6px;
+  }
+  .file-chip .fc-dates{color:#22c55e}
+  .file-chip .remove{cursor:pointer;color:#ef4444;font-weight:700;font-size:14px;line-height:1}
+  .file-chip .remove:hover{color:#f87171}
+  .btn-clear-all{
+    background:transparent;border:1px solid #334155;border-radius:6px;padding:4px 10px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#ef4444;
+    cursor:pointer;margin-top:8px;
+  }
+  .btn-clear-all:hover{background:rgba(239,68,68,0.1)}
+  .tariff-editor{
+    width:100%;max-width:860px;margin-bottom:20px;
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  }
+  @media(max-width:640px){.tariff-editor{grid-template-columns:1fr}}
+  .tariff-card{background:#111827;border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.06)}
+  .tariff-card h3{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+  .tariff-card h3.t3{color:#ff6b2b}
+  .tariff-card h3.t2{color:#8b5cf6}
+  .tariff-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .tariff-row label{color:#9ca3af;min-width:110px;flex-shrink:0}
+  .tariff-row input[type="text"]{
+    background:#1e293b;border:1px solid #334155;border-radius:6px;
+    padding:6px 10px;color:#e0e4f0;font-family:'JetBrains Mono',monospace;
+    font-size:12px;width:100px;text-align:right;
+  }
+  .tariff-row input:focus{outline:none;border-color:#ff6b2b}
+  .tariff-row .unit{color:#4b5563;font-size:10px}
+  .feriados-section{width:100%;max-width:860px;margin-bottom:20px}
+  .feriados-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+  .feriados-header h3{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#e879f9}
+  .feriados-list{display:flex;flex-wrap:wrap;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px}
+  .feriado-chip{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:6px;color:#e0e4f0}
+  .feriado-chip .fname{color:#c084fc;font-size:10px}
+  .feriado-chip .remove{cursor:pointer;color:#ef4444;font-weight:700;font-size:14px;line-height:1}
+  .feriado-chip .remove:hover{color:#f87171}
+  .add-feriado{display:flex;align-items:center;gap:6px}
+  .add-feriado input{
+    background:#1e293b;border:1px solid #334155;border-radius:6px;
+    padding:4px 10px;color:#e0e4f0;font-family:'JetBrains Mono',monospace;font-size:11px;
+  }
+  .add-feriado input:focus{outline:none;border-color:#e879f9}
+  .btn-small{background:#334155;border:none;border-radius:6px;padding:4px 10px;color:#e0e4f0;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer}
+  .btn-small:hover{background:#475569}
+  .btn-recalc{
+    background:linear-gradient(135deg,#ff6b2b,#e63946);border:none;border-radius:8px;padding:10px 28px;
+    color:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;
+    cursor:pointer;margin:0 auto 24px;display:block;transition:transform .1s,box-shadow .1s;
+  }
+  .btn-recalc:hover{transform:scale(1.03);box-shadow:0 4px 20px rgba(255,107,43,0.3)}
+  .map-wrap{
+    background:#0f1219;border-radius:14px;padding:24px 20px 16px;
+    border:1px solid rgba(255,255,255,0.06);box-shadow:0 24px 64px rgba(0,0,0,0.55);
+    overflow-x:auto;max-width:100%;
+  }
+  table{border-collapse:separate;border-spacing:2.5px}
+  th{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;color:#4b5563;padding:3px 0;text-align:center;min-width:30px}
+  th.dl{text-align:right;padding-right:10px;white-space:nowrap;min-width:84px;font-size:10.5px}
+  td.c{width:30px;height:24px;border-radius:3.5px;cursor:crosshair;transition:transform .12s ease,box-shadow .12s ease;position:relative}
+  td.c:hover{transform:scale(1.4);z-index:10;box-shadow:0 0 14px rgba(255,107,43,0.45)}
+  td.total-cell{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-align:right;padding:0 6px 0 12px;white-space:nowrap;color:#6b7280;border-left:2px solid rgba(255,255,255,0.04)}
+  td.cost-cell{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-align:right;padding:0 6px 0 8px;white-space:nowrap;color:#f59e0b}
+  .wknd th.dl{color:#ff6b2b !important;opacity:.7}
+  .feriado th.dl{color:#e879f9 !important;opacity:.85}
+  #tip{display:none;position:fixed;background:#1a1f2e;border:1px solid #2d3548;border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#e0e4f0;z-index:9999;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,0.7);white-space:nowrap}
+  #tip .tv{font-size:20px;font-weight:700;color:#ff6b2b}
+  .legend{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#4b5563}
+  .legend-bar{width:180px;height:10px;border-radius:5px;background:linear-gradient(90deg,#0c1222,#0e3d5e,#0891b2,#f59e0b,#ef4444,#dc2626)}
+  .tariff-legend{display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px}
+  .tariff-legend .tl-item{display:flex;align-items:center;gap:6px}
+  .tariff-legend .tl-dot{width:10px;height:10px;border-radius:2px}
+  .tariff-note{text-align:center;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b7280}
+  .stats{display:flex;gap:16px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+  .sc{background:#111827;border-radius:10px;padding:12px 18px;text-align:center;border:1px solid rgba(255,255,255,0.05);min-width:110px}
+  .sc .sl{font-size:9.5px;color:#4b5563;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px}
+  .sc .sv{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .sc .sd{font-size:10px;color:#4b5563;font-family:'JetBrains Mono',monospace;margin-top:2px}
+  .orange{color:#ff6b2b}.cyan{color:#06b6d4}.red{color:#ef4444}.green{color:#22c55e}.purple{color:#a855f7}.amber{color:#f59e0b}
+  th.band-valle{color:#22c55e !important}
+  th.band-punta{color:#ef4444 !important}
+  th.band-llano{color:#3b82f6 !important}
+  .compare-section{margin-top:32px;width:100%;max-width:860px}
+  .compare-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:20px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.compare-grid{grid-template-columns:1fr}}
+  .plan-card{background:#111827;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.06);position:relative;overflow:hidden}
+  .plan-card.winner{border-color:rgba(34,197,94,0.3)}
+  .plan-card .badge{position:absolute;top:12px;right:12px;background:#22c55e;color:#07090f;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px}
+  .plan-name{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+  .plan-total{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;margin-bottom:16px}
+  .plan-breakdown{list-style:none;padding:0}
+  .plan-breakdown li{display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);color:#9ca3af}
+  .plan-breakdown li:last-child{border-bottom:none}
+  .plan-breakdown .val{color:#e0e4f0;font-weight:600}
+  .diff-bar-wrap{margin-top:20px;background:#111827;border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);text-align:center}
+  .diff-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7280;margin-bottom:10px}
+  .diff-bar-bg{width:100%;max-width:400px;height:28px;background:#1e293b;border-radius:6px;overflow:hidden;margin:0 auto}
+  .diff-bar-fill{height:100%;border-radius:6px;transition:width 0.8s ease}
+  .diff-amount{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:10px}
+  .diff-pct{font-family:'JetBrains Mono',monospace;font-size:13px;color:#6b7280;margin-top:2px}
+  #results{display:none}
+  .empty-state{text-align:center;padding:60px 20px;font-family:'JetBrains Mono',monospace;color:#334155;font-size:14px}
+  .empty-state .big{font-size:48px;margin-bottom:12px}
+  .date-range-info{font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7280;text-align:center;margin-bottom:16px}
+  .date-range-info b{color:#ff6b2b}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Análisis Tarifario UTE</h1>
+  <p class="sub">Heatmap de consumo · Triple vs Doble horario</p>
+</div>
+
+<div class="upload-zone" id="dropzone">
+  <input type="file" accept=".csv" id="fileInput" multiple>
+  <div class="upload-icon">📂</div>
+  <div class="upload-text">Arrastrá tus <b>CSVs de UTE</b> acá (se acumulan)</div>
+  <div class="upload-hint">Formato: "Fecha Hora;Energia Activa Entrante kWh;..." · Podés cargar varios archivos</div>
+  <div id="fileInfo"></div>
+  <div class="files-list" id="filesList"></div>
+</div>
+
+<div class="tariff-editor">
+  <div class="tariff-card">
+    <h3 class="t3">Triple Horario</h3>
+    <div class="tariff-row"><label style="color:#22c55e">Valle (00–06)</label><input type="text" id="t3_valle" value="2.98"><span class="unit">$/kWh</span></div>
+    <div class="tariff-row"><label style="color:#3b82f6">Llano</label><input type="text" id="t3_llano" value="6.309"><span class="unit">$/kWh</span></div>
+    <div class="tariff-row"><label style="color:#ef4444">Punta (17–20)</label><input type="text" id="t3_punta" value="14.583"><span class="unit">$/kWh</span></div>
+  </div>
+  <div class="tariff-card">
+    <h3 class="t2">Doble Horario</h3>
+    <div class="tariff-row"><label style="color:#ef4444">Punta (17–20)</label><input type="text" id="t2_punta" value="12.034"><span class="unit">$/kWh</span></div>
+    <div class="tariff-row"><label style="color:#3b82f6">Fuera de Punta</label><input type="text" id="t2_fp" value="4.771"><span class="unit">$/kWh</span></div>
+  </div>
+</div>
+
+<div class="feriados-section">
+  <div class="feriados-header">
+    <h3>🎭 Feriados (sin tarifa Punta)</h3>
+    <div class="add-feriado">
+      <input type="date" id="newFeriado">
+      <input type="text" id="newFeriadoName" placeholder="Nombre" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 10px;color:#e0e4f0;font-family:'JetBrains Mono',monospace;font-size:11px;width:140px">
+      <button class="btn-small" onclick="addFeriado()">+ Agregar</button>
+    </div>
+  </div>
+  <div class="feriados-list" id="feriadosList"></div>
+</div>
+
+<button class="btn-recalc" onclick="recalc()">Recalcular</button>
+
+<div id="results">
+  <div class="date-range-info" id="dateRangeInfo"></div>
+  <div class="map-wrap"><table id="hm"></table></div>
+  <div class="legend"><span>0 kWh</span><div class="legend-bar"></div><span id="mx"></span></div>
+  <div class="tariff-legend" id="tariffLegend"></div>
+  <div class="tariff-note">Fines de semana y feriados: sin tarifa Punta (17–20 pasa a Llano / Fuera de Punta)</div>
+  <div class="stats" id="stats"></div>
+  <div class="compare-section" id="compare"></div>
+</div>
+
+<div id="emptyState" class="empty-state">
+  <div class="big">⚡</div>
+  Cargá uno o más CSVs de UTE para comenzar el análisis<br>
+  <span style="font-size:11px;color:#2d3548">Los datos se acumulan a medida que cargás archivos</span>
+</div>
+
+<div id="tip"></div>
+
+<script>
+// ========== STATE ==========
+// Merged data: { "2026-01-24": {0: 0.5, 1: 0.29, ...}, ... }
+let mergedData = {};
+let loadedFiles = []; // [{name, dateFrom, dateTo, count}]
+
+// Feriados Uruguay 2026
+let feriadosMap = {
+  '2026-01-01':'Año Nuevo',
+  '2026-01-06':'Día de Reyes',
+  '2026-02-16':'Carnaval',
+  '2026-02-17':'Carnaval',
+  '2026-04-02':'Semana de Turismo',
+  '2026-04-03':'Semana de Turismo',
+  '2026-04-19':'Desembarco 33 Orientales',
+  '2026-05-01':'Día de los Trabajadores',
+  '2026-05-18':'Batalla de las Piedras',
+  '2026-06-19':'Natalicio de Artigas',
+  '2026-07-18':'Jura de la Constitución',
+  '2026-08-25':'Declaratoria de la Independencia',
+  '2026-10-12':'Día de la Raza',
+  '2026-11-02':'Día de los Difuntos',
+  '2026-12-25':'Navidad'
+};
+
+const dayNames=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const monthNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const fmt=n=>n>=1000?'$'+(n/1000).toFixed(1)+'k':'$'+n.toFixed(0);
+
+// ========== FERIADOS UI ==========
+function renderFeriados(){
+  const el=document.getElementById('feriadosList');
+  const sorted=Object.keys(feriadosMap).sort();
+  el.innerHTML=sorted.map(f=>{
+    const [y,m,d]=f.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    const dn=dayNames[dt.getDay()];
+    const mn=monthNames[m-1];
+    return `<div class="feriado-chip">${dn} ${d} ${mn} <span class="fname">${feriadosMap[f]}</span><span class="remove" onclick="removeFeriado('${f}')">×</span></div>`;
+  }).join('');
+}
+function addFeriado(){
+  const input=document.getElementById('newFeriado');
+  const nameInput=document.getElementById('newFeriadoName');
+  if(input.value){
+    feriadosMap[input.value]=nameInput.value||'Feriado';
+    input.value='';nameInput.value='';
+    renderFeriados();
+    if(Object.keys(mergedData).length)recalc();
+  }
+}
+function removeFeriado(f){delete feriadosMap[f];renderFeriados();if(Object.keys(mergedData).length)recalc();}
+renderFeriados();
+
+// ========== FILE HANDLING ==========
+const dropzone=document.getElementById('dropzone');
+const fileInput=document.getElementById('fileInput');
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('dragover')});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+fileInput.addEventListener('change',e=>{handleFiles(e.target.files);e.target.value=''});
+
+function handleFiles(files){
+  for(const file of files){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const result=parseCSV(e.target.result);
+      // Merge into global data (new data overwrites overlapping hours)
+      for(const[dk,hours]of Object.entries(result.data)){
+        if(!mergedData[dk])mergedData[dk]={};
+        for(const[h,v]of Object.entries(hours)){
+          mergedData[dk][h]=v;
+        }
+      }
+      loadedFiles.push({name:file.name,dateFrom:result.dateFrom,dateTo:result.dateTo,days:result.days});
+      renderFilesList();
+      recalc();
+    };
+    reader.readAsText(file,'utf-8');
+  }
+}
+
+function parseCSV(text){
+  const lines=text.trim().replace(/\r/g,'').split('\n');
+  const data={};
+  let dates=new Set();
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i].trim();
+    if(!line)continue;
+    const parts=line.split(';');
+    if(parts.length<2)continue;
+    const dt=parts[0];
+    const val=parseFloat(parts[1].replace(',','.'));
+    if(isNaN(val))continue;
+    const sp=dt.split(' ');
+    if(sp.length<2)continue;
+    const [dd,mm,yyyy]=sp[0].split('-');
+    const dateKey=`${yyyy}-${mm}-${dd}`;
+    const hour=parseInt(sp[1].split(':')[0]);
+    if(!data[dateKey])data[dateKey]={};
+    data[dateKey][hour]=val;
+    dates.add(dateKey);
+  }
+  const sorted=[...dates].sort();
+  return {data,dateFrom:sorted[0]||'?',dateTo:sorted[sorted.length-1]||'?',days:sorted.length};
+}
+
+function renderFilesList(){
+  const el=document.getElementById('filesList');
+  el.innerHTML=loadedFiles.map((f,i)=>{
+    const from=formatDateShort(f.dateFrom);
+    const to=formatDateShort(f.dateTo);
+    return `<div class="file-chip">${f.name} <span class="fc-dates">${from} → ${to} (${f.days}d)</span><span class="remove" onclick="removeFile(${i})">×</span></div>`;
+  }).join('');
+  if(loadedFiles.length>1){
+    el.innerHTML+=`<button class="btn-clear-all" onclick="clearAll()">Limpiar todo</button>`;
+  }
+}
+
+function formatDateShort(ds){
+  if(!ds||ds==='?')return '?';
+  const [y,m,d]=ds.split('-').map(Number);
+  return `${d} ${monthNames[m-1]}`;
+}
+
+function removeFile(idx){
+  // Rebuild mergedData without this file's exclusive data
+  // Simplest: re-parse all remaining files... but we don't have raw text anymore
+  // Instead: clear all and warn
+  loadedFiles.splice(idx,1);
+  // Full rebuild: clear and re-render
+  mergedData={};
+  // We can't re-parse since we don't store raw text. So just clear.
+  loadedFiles=[];
+  renderFilesList();
+  document.getElementById('results').style.display='none';
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('fileInfo').innerHTML='<div class="file-loaded" style="color:#f59e0b">⚠ Datos limpiados — volvé a cargar los CSVs</div>';
+}
+
+function clearAll(){
+  mergedData={};loadedFiles=[];
+  renderFilesList();
+  document.getElementById('results').style.display='none';
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('fileInfo').innerHTML='';
+}
+
+// ========== MAIN RENDER ==========
+function recalc(){
+  const allDates=Object.keys(mergedData).sort();
+  if(!allDates.length)return;
+  document.getElementById('results').style.display='block';
+  document.getElementById('emptyState').style.display='none';
+
+  const dateFrom=formatDateShort(allDates[0]);
+  const dateTo=formatDateShort(allDates[allDates.length-1]);
+  document.getElementById('dateRangeInfo').innerHTML=`<b>${dateFrom}</b> → <b>${dateTo}</b> · ${allDates.length} días cargados · ${loadedFiles.length} archivo${loadedFiles.length>1?'s':''}`;
+
+  const p=v=>parseFloat(v.replace(',','.'));
+  const R3={valle:p(document.getElementById('t3_valle').value),llano:p(document.getElementById('t3_llano').value),punta:p(document.getElementById('t3_punta').value)};
+  const R2={punta:p(document.getElementById('t2_punta').value),fp:p(document.getElementById('t2_fp').value)};
+
+  function dateInfo(ds){
+    const [y,m,d]=ds.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    const dow=dt.getDay();
+    const isWknd=dow===0||dow===6;
+    const isFeriado=ds in feriadosMap;
+    const feriadoName=feriadosMap[ds]||'';
+    return {dow,dn:dayNames[dow],day:d,mn:monthNames[m-1],isWknd,isFeriado,feriadoName,isOffPeak:isWknd||isFeriado};
+  }
+  function tariff3(h,off){
+    if(h>=0&&h<=6)return{name:'Valle',rate:R3.valle};
+    if(h>=17&&h<=20&&!off)return{name:'Punta',rate:R3.punta};
+    return{name:'Llano',rate:R3.llano};
+  }
+  function tariff2(h,off){
+    if(h>=17&&h<=20&&!off)return{name:'Punta',rate:R2.punta};
+    return{name:'Fuera de Punta',rate:R2.fp};
+  }
+
+  let allV=[];
+  allDates.forEach(d=>{for(let h=0;h<24;h++){const v=mergedData[d]?.[String(h)];if(v!=null)allV.push(v)}});
+  if(!allV.length)return;
+  const maxV=Math.max(...allV);
+  document.getElementById('mx').textContent=maxV.toFixed(1)+' kWh';
+
+  document.getElementById('tariffLegend').innerHTML=`
+    <div class="tl-item"><div class="tl-dot" style="background:#22c55e"></div><span style="color:#22c55e">Valle 00–06 · $${R3.valle}</span></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#3b82f6"></div><span style="color:#3b82f6">Llano 07–16, 21–23 · $${R3.llano}</span></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#ef4444"></div><span style="color:#ef4444">Punta 17–20 · $${R3.punta}</span></div>`;
+
+  function color(v){
+    if(v==null)return'#0c1222';
+    const t=v/maxV;
+    const stops=[[0,12,18,34],[0.15,14,61,94],[0.3,8,145,178],[0.5,245,158,11],[0.75,239,68,68],[1,220,38,38]];
+    let i=0;for(;i<stops.length-1;i++){if(t<=stops[i+1][0])break}
+    const[t0,r0,g0,b0]=stops[i],[t1,r1,g1,b1]=stops[i+1];
+    const f=(t-t0)/(t1-t0);
+    return`rgb(${Math.round(r0+(r1-r0)*f)},${Math.round(g0+(g1-g0)*f)},${Math.round(b0+(b1-b0)*f)})`;
+  }
+
+  const tbl=document.getElementById('hm');
+  let hdr='<tr><th class="dl"></th>';
+  for(let h=0;h<24;h++){
+    const t=tariff3(h,false);
+    const cls=t.name==='Valle'?'band-valle':t.name==='Punta'?'band-punta':'band-llano';
+    hdr+=`<th class="${cls}">${String(h).padStart(2,'0')}</th>`;
+  }
+  hdr+='<th style="padding-left:10px;font-size:9.5px">kWh</th><th style="padding-left:6px;font-size:9.5px;color:#f59e0b">Costo</th></tr>';
+  tbl.innerHTML=hdr;
+
+  let g3=0,g2=0,totalKwh=0;
+  let c3={Valle:0,Llano:0,Punta:0},c2={Punta:0,'Fuera de Punta':0};
+  let k3={Valle:0,Llano:0,Punta:0},k2={Punta:0,'Fuera de Punta':0};
+
+  allDates.forEach(dk=>{
+    const info=dateInfo(dk);
+    let rowClass=info.isFeriado?'feriado':info.isWknd?'wknd':'';
+    let labelSuffix=info.isFeriado?' 🎭':'';
+    let row=`<tr class="${rowClass}"><th class="dl">${info.dn} ${info.day} ${info.mn}${labelSuffix}</th>`;
+    let dayTotal=0,dayCost3=0;
+    for(let h=0;h<24;h++){
+      const v=mergedData[dk]?.[String(h)]??null;
+      const t3=tariff3(h,info.isOffPeak);
+      const t2=tariff2(h,info.isOffPeak);
+      if(v!=null){
+        dayTotal+=v;totalKwh+=v;
+        const cost3=v*t3.rate,cost2=v*t2.rate;
+        dayCost3+=cost3;g3+=cost3;g2+=cost2;
+        c3[t3.name]=(c3[t3.name]||0)+cost3;
+        k3[t3.name]=(k3[t3.name]||0)+v;
+        c2[t2.name]=(c2[t2.name]||0)+cost2;
+        k2[t2.name]=(k2[t2.name]||0)+v;
+      }
+      const bg=color(v);
+      row+=`<td class="c" style="background:${bg}" data-d="${dk}" data-h="${h}" data-v="${v!=null?v.toFixed(2):'—'}" data-t="${t3.name}" data-r="${t3.rate}" data-t2="${t2.name}" data-r2="${t2.rate}" data-fn="${info.feriadoName}"></td>`;
+    }
+    row+=`<td class="total-cell">${dayTotal.toFixed(1)}</td><td class="cost-cell">${fmt(dayCost3)}</td></tr>`;
+    tbl.innerHTML+=row;
+  });
+
+  // Tooltip
+  const tip=document.getElementById('tip');
+  document.querySelectorAll('td.c').forEach(td=>{
+    td.addEventListener('mouseenter',e=>{
+      const dk=td.dataset.d,h=td.dataset.h,v=td.dataset.v;
+      const r=td.dataset.r,tn=td.dataset.t,r2=td.dataset.r2,tn2=td.dataset.t2,fn=td.dataset.fn;
+      const info=dateInfo(dk);
+      const cost3=v!=='—'?(parseFloat(v)*parseFloat(r)).toFixed(1):'—';
+      const cost2=v!=='—'?(parseFloat(v)*parseFloat(r2)).toFixed(1):'—';
+      let dayType=info.isWknd?'Fin de semana':'Laboral';
+      if(info.isFeriado)dayType=info.feriadoName;
+      tip.innerHTML=`${info.dn} ${info.day} ${info.mn} · ${String(h).padStart(2,'0')}:00 <span style="color:#6b7280;font-size:10px">(${dayType})</span><br><span class="tv">${v} kWh</span><br><span style="font-size:13px;font-weight:600;color:#f59e0b">Triple: $${cost3} <span style="color:#6b7280;font-size:10px">${tn} $${r}</span></span><br><span style="font-size:12px;color:#8b5cf6;font-weight:600">Doble: $${cost2} <span style="color:#6b7280;font-size:10px">${tn2} $${r2}</span></span>`;
+      tip.style.display='block';
+    });
+    td.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-50)+'px'});
+    td.addEventListener('mouseleave',()=>{tip.style.display='none'});
+  });
+
+  // Stats
+  document.getElementById('stats').innerHTML=`
+    <div class="sc"><div class="sl">Total</div><div class="sv orange">${totalKwh.toFixed(0)} kWh</div></div>
+    <div class="sc"><div class="sl">Valle</div><div class="sv green">${k3.Valle.toFixed(0)} kWh</div><div class="sd">${(k3.Valle/totalKwh*100).toFixed(0)}%</div></div>
+    <div class="sc"><div class="sl">Llano</div><div class="sv cyan">${k3.Llano.toFixed(0)} kWh</div><div class="sd">${(k3.Llano/totalKwh*100).toFixed(0)}%</div></div>
+    <div class="sc"><div class="sl">Punta</div><div class="sv red">${k3.Punta.toFixed(0)} kWh</div><div class="sd">${(k3.Punta/totalKwh*100).toFixed(0)}%</div></div>`;
+
+  // Comparison
+  const diff=g3-g2;
+  const diffPct=Math.abs(diff/Math.min(g3,g2)*100);
+  const tripleWins=diff<0,dobleWins=diff>0;
+  const winnerLabel=tripleWins?'Triple horario':'Doble horario';
+  const savings=Math.abs(diff);
+  const nDays=allDates.length;
+
+  document.getElementById('compare').innerHTML=`
+    <div class="compare-title">Triple Horario vs Doble Horario</div>
+    <div class="compare-grid">
+      <div class="plan-card ${tripleWins?'winner':''}">
+        ${tripleWins?'<div class="badge">Más barato</div>':''}
+        <div class="plan-name">Triple Horario</div>
+        <div class="plan-total" style="color:${tripleWins?'#22c55e':'#e0e4f0'}">${fmt(g3)}</div>
+        <ul class="plan-breakdown">
+          <li>Valle (00–06)<span class="val" style="color:#22c55e">${fmt(c3.Valle)}</span></li>
+          <li>${k3.Valle.toFixed(0)} kWh × $${R3.valle}<span class="val">${(k3.Valle/totalKwh*100).toFixed(0)}%</span></li>
+          <li>Llano (07–16, 21–23)<span class="val" style="color:#3b82f6">${fmt(c3.Llano)}</span></li>
+          <li>${k3.Llano.toFixed(0)} kWh × $${R3.llano}<span class="val">${(k3.Llano/totalKwh*100).toFixed(0)}%</span></li>
+          <li>Punta (17–20 lab.)<span class="val" style="color:#ef4444">${fmt(c3.Punta)}</span></li>
+          <li>${k3.Punta.toFixed(0)} kWh × $${R3.punta}<span class="val">${(k3.Punta/totalKwh*100).toFixed(0)}%</span></li>
+          <li style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px">$/kWh promedio<span class="val" style="color:#f59e0b">$${(g3/totalKwh).toFixed(2)}</span></li>
+        </ul>
+      </div>
+      <div class="plan-card ${dobleWins?'winner':''}">
+        ${dobleWins?'<div class="badge">Más barato</div>':''}
+        <div class="plan-name">Doble Horario</div>
+        <div class="plan-total" style="color:${dobleWins?'#22c55e':'#e0e4f0'}">${fmt(g2)}</div>
+        <ul class="plan-breakdown">
+          <li>Punta (17–20 lab.)<span class="val" style="color:#ef4444">${fmt(c2.Punta)}</span></li>
+          <li>${k2.Punta.toFixed(0)} kWh × $${R2.punta}<span class="val">${(k2.Punta/totalKwh*100).toFixed(0)}%</span></li>
+          <li>Fuera de Punta (resto)<span class="val" style="color:#3b82f6">${fmt(c2['Fuera de Punta'])}</span></li>
+          <li>${k2['Fuera de Punta'].toFixed(0)} kWh × $${R2.fp}<span class="val">${(k2['Fuera de Punta']/totalKwh*100).toFixed(0)}%</span></li>
+          <li style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px">$/kWh promedio<span class="val" style="color:#f59e0b">$${(g2/totalKwh).toFixed(2)}</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diff-bar-wrap">
+      <div class="diff-label">Diferencia en el período (${nDays} días)</div>
+      <div class="diff-bar-bg">
+        <div class="diff-bar-fill" style="width:${Math.min(diffPct*3,100)}%;background:linear-gradient(90deg,#22c55e,#16a34a)"></div>
+      </div>
+      <div class="diff-amount" style="color:#22c55e">
+        ${diff===0?'Empate':`Ahorrás ${fmt(savings)} con ${winnerLabel}`}
+      </div>
+      <div class="diff-pct">${diffPct.toFixed(1)}% ${diff>0?'más barato con doble':'más barato con triple'}</div>
+    </div>`;
+}
+</script>
+</body>
+</html>
