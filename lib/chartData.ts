@@ -43,8 +43,6 @@ export interface ChartData {
   monthSeries: MonthSeries[]  // only populated when ≥ 2 distinct months
 }
 
-const DOW_KEYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'] as const
-
 export function computeChartData(
   mergedData: MergedData,
   userRates: Record<number, Partial<YearRates>>,
@@ -80,9 +78,6 @@ export function computeChartData(
   let cumG3 = 0
   let cumG2 = 0
 
-  // --- kWh histogram ---
-  const kwhValues: number[] = []
-
   // --- Monthly day-of-month profile ---
   // monthMap: "YYYY-MM" → { day → kWh }
   const monthMap = new Map<string, Record<number, number>>()
@@ -104,7 +99,6 @@ export function computeChartData(
       const v = adj(raw, evMode)
       if (v == null) continue
 
-      kwhValues.push(v)
       dayKwh += v
 
       const t3 = tariff3(h, info.isOffPeak, R3)
@@ -161,17 +155,6 @@ export function computeChartData(
     Sab: dowCnt[6][h] > 0 ? dowSum[6][h] / dowCnt[6][h] : null,
   }))
 
-  // --- kWh histogram (0.5 kWh bins) ---
-  const BIN = 0.5
-  const binMap = new Map<number, number>()
-  for (const v of kwhValues) {
-    const b = Math.floor(v / BIN) * BIN
-    binMap.set(b, (binMap.get(b) ?? 0) + 1)
-  }
-  const kwhHistogram: KwhBin[] = Array.from(binMap.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([b, count]) => ({ bin: b.toFixed(1), count }))
-
   // --- Rolling 7-day ---
   const rollingDays: RollingDay[] = dailyKwh.map((kwh, i) => {
     let rolling7: number | null = null
@@ -197,7 +180,6 @@ export function computeChartData(
     hourProfile,
     dowProfile,
     cumulativeCosts,
-    kwhHistogram,
     rollingDays,
     monthSeries,
   }
