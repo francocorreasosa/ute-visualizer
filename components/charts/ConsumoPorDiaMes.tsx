@@ -56,7 +56,7 @@ export default function ConsumoPorDiaMes({ data }: Props) {
           <Tooltip
             contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontFamily: 'JetBrains Mono', fontSize: 11 }}
             labelFormatter={(d) => `Día ${d}`}
-            formatter={(v: number) => [`${v.toFixed(1)} kWh`]}
+            formatter={(v) => [typeof v === 'number' ? `${v.toFixed(1)} kWh` : '']}
           />
           <Legend wrapperStyle={{ fontFamily: 'JetBrains Mono', fontSize: 10 }} />
           {data.map((m, i) => (

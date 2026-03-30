@@ -30,7 +30,7 @@ export default function CostoAcumulado({ data }: Props) {
           <Tooltip
             contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontFamily: 'JetBrains Mono', fontSize: 11 }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''}
-            formatter={(v: number) => [v >= 1000 ? `$${(v / 1000).toFixed(2)}k` : `$${v.toFixed(1)}`]}
+            formatter={(v) => [typeof v === 'number' ? (v >= 1000 ? `$${(v / 1000).toFixed(2)}k` : `$${v.toFixed(1)}`) : '']}
           />
           <Legend wrapperStyle={{ fontFamily: 'JetBrains Mono', fontSize: 10 }} />
           <Line

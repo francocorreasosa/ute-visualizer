@@ -30,8 +30,8 @@ export default function Rolling7Dias({ data }: Props) {
           <Tooltip
             contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontFamily: 'JetBrains Mono', fontSize: 11 }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''}
-            formatter={(v: number, name: string) => [
-              `${v.toFixed(1)} kWh`,
+            formatter={(v, name) => [
+              typeof v === 'number' ? `${v.toFixed(1)} kWh` : '',
               name,
             ]}
           />
