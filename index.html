@@ -157,6 +157,14 @@
   <div class="feriados-list" id="feriadosList"></div>
 </div>
 
+<div style="width:100%;max-width:860px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:12px">
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#111827;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 16px">
+    <input type="checkbox" id="evToggle" onchange="recalc()" style="accent-color:#ff6b2b;width:16px;height:16px;cursor:pointer">
+    <span style="color:#9ca3af">🚗 Simular sin auto eléctrico</span>
+    <span style="color:#4b5563;font-size:10px">(resta 6.5 kWh a horas &gt; 7 kWh)</span>
+  </label>
+</div>
+
 <button class="btn-recalc" onclick="recalc()">Recalcular</button>
 
 <div id="results">
@@ -1062,8 +1070,11 @@ function recalc(){
   function tariff3(h,off,R3){if(h>=0&&h<=6)return{name:'Valle',rate:R3.valle};if(h>=17&&h<=20&&!off)return{name:'Punta',rate:R3.punta};return{name:'Llano',rate:R3.llano};}
   function tariff2(h,off,R2){if(h>=17&&h<=20&&!off)return{name:'Punta',rate:R2.punta};return{name:'Fuera de Punta',rate:R2.fp};}
 
+  const evMode=document.getElementById('evToggle').checked;
+  function adj(v){if(v==null)return null;if(evMode&&v>7)return Math.max(v-6.5,0);return v;}
+
   let allV=[];
-  allDates.forEach(d=>{for(let h=0;h<24;h++){const v=mergedData[d]?.[String(h)];if(v!=null)allV.push(v)}});
+  allDates.forEach(d=>{for(let h=0;h<24;h++){const v=adj(mergedData[d]?.[String(h)]??null);if(v!=null)allV.push(v)}});
   if(!allV.length)return;
   const maxV=Math.max(...allV);
   document.getElementById('mx').textContent=maxV.toFixed(1)+' kWh';
@@ -1101,7 +1112,8 @@ function recalc(){
     let row=`<tr class="${rowClass}"><th class="dl">${info.dn} ${info.day} ${info.mn}${labelSuffix}</th>`;
     let dayTotal=0,dayCost3=0;
     for(let h=0;h<24;h++){
-      const v=mergedData[dk]?.[String(h)]??null;
+      const v=adj(mergedData[dk]?.[String(h)]??null);
+      const vRaw=mergedData[dk]?.[String(h)]??null;
       const t3=tariff3(h,info.isOffPeak,rates.R3);
       const t2=tariff2(h,info.isOffPeak,rates.R2);
       if(v!=null){
@@ -1112,7 +1124,7 @@ function recalc(){
         c2[t2.name]=(c2[t2.name]||0)+cost2;k2[t2.name]=(k2[t2.name]||0)+v;
       }
       const bg=color(v);
-      row+=`<td class="c" style="background:${bg}" data-d="${dk}" data-h="${h}" data-v="${v!=null?v.toFixed(2):'—'}" data-t="${t3.name}" data-r="${t3.rate}" data-t2="${t2.name}" data-r2="${t2.rate}" data-fn="${info.feriadoName}" data-y="${info.year}"></td>`;
+      row+=`<td class="c" style="background:${bg}" data-d="${dk}" data-h="${h}" data-v="${v!=null?v.toFixed(2):'—'}" data-vr="${vRaw!=null?vRaw.toFixed(2):''}" data-t="${t3.name}" data-r="${t3.rate}" data-t2="${t2.name}" data-r2="${t2.rate}" data-fn="${info.feriadoName}" data-y="${info.year}"></td>`;
     }
     row+=`<td class="total-cell">${dayTotal.toFixed(1)}</td><td class="cost-cell">${fmt(dayCost3)}</td></tr>`;
     tbl.innerHTML+=row;
@@ -1122,14 +1134,16 @@ function recalc(){
   const tip=document.getElementById('tip');
   document.querySelectorAll('td.c').forEach(td=>{
     td.addEventListener('mouseenter',e=>{
-      const dk=td.dataset.d,h=td.dataset.h,v=td.dataset.v;
+      const dk=td.dataset.d,h=td.dataset.h,v=td.dataset.v,vr=td.dataset.vr;
       const r=td.dataset.r,tn=td.dataset.t,r2=td.dataset.r2,tn2=td.dataset.t2,fn=td.dataset.fn,yr=td.dataset.y;
       const info=dateInfo(dk);
       const cost3=v!=='—'?(parseFloat(v)*parseFloat(r)).toFixed(1):'—';
       const cost2=v!=='—'?(parseFloat(v)*parseFloat(r2)).toFixed(1):'—';
       let dayType=info.isWknd?'Fin de semana':'Laboral';
       if(info.isFeriado)dayType=info.feriadoName;
-      tip.innerHTML=`${info.dn} ${info.day} ${info.mn} ${yr} · ${String(h).padStart(2,'0')}:00 <span style="color:#6b7280;font-size:10px">(${dayType})</span><br><span class="tv">${v} kWh</span><br><span style="font-size:13px;font-weight:600;color:#f59e0b">Triple: $${cost3} <span style="color:#6b7280;font-size:10px">${tn} $${r}</span></span><br><span style="font-size:12px;color:#8b5cf6;font-weight:600">Doble: $${cost2} <span style="color:#6b7280;font-size:10px">${tn2} $${r2}</span></span>`;
+      let evNote='';
+      if(evMode&&vr&&v!=='—'&&vr!==v) evNote=`<br><span style="color:#4b5563;font-size:10px">🚗 Original: ${vr} kWh → ajustado −6.5</span>`;
+      tip.innerHTML=`${info.dn} ${info.day} ${info.mn} ${yr} · ${String(h).padStart(2,'0')}:00 <span style="color:#6b7280;font-size:10px">(${dayType})</span><br><span class="tv">${v} kWh</span>${evNote}<br><span style="font-size:13px;font-weight:600;color:#f59e0b">Triple: $${cost3} <span style="color:#6b7280;font-size:10px">${tn} $${r}</span></span><br><span style="font-size:12px;color:#8b5cf6;font-weight:600">Doble: $${cost2} <span style="color:#6b7280;font-size:10px">${tn2} $${r2}</span></span>`;
       tip.style.display='block';
     });
     td.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-50)+'px'});
