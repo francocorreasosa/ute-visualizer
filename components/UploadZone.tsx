@@ -1,15 +1,16 @@
-'use client'
+"use client";
 
-import { useRef, useState } from 'react'
-import type { LoadedFile } from '@/lib/types'
-import FileChip from './FileChip'
+import { useRef, useState } from "react";
+import type { LoadedFile } from "@/lib/types";
+import FileChip from "./FileChip";
+import TutorialDialog from "./TutorialDialog";
 
 interface Props {
-  loadedFiles: LoadedFile[]
-  onFilesDropped: (files: FileList) => void
-  onRemoveFile: (index: number) => void
-  onClearAll: () => void
-  onLoadDemo: () => void
+  loadedFiles: LoadedFile[];
+  onFilesDropped: (files: FileList) => void;
+  onRemoveFile: (index: number) => void;
+  onClearAll: () => void;
+  onLoadDemo: () => void;
 }
 
 export default function UploadZone({
@@ -19,26 +20,28 @@ export default function UploadZone({
   onClearAll,
   onLoadDemo,
 }: Props) {
-  const [isDragOver, setIsDragOver] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
       <div
         className={`my-5 mb-6 w-full max-w-content border-2 border-dashed rounded-[14px] px-6 py-7 text-center cursor-pointer transition-colors duration-200 relative ${
           isDragOver
-            ? 'border-orange bg-[rgba(255,107,43,0.04)]'
-            : 'border-border-dim bg-surface hover:border-orange hover:bg-[rgba(255,107,43,0.04)]'
+            ? "border-orange bg-[rgba(255,107,43,0.04)]"
+            : "border-border-dim bg-surface hover:border-orange hover:bg-[rgba(255,107,43,0.04)]"
         }`}
         onDragOver={(e) => {
-          e.preventDefault()
-          setIsDragOver(true)
+          e.preventDefault();
+          setIsDragOver(true);
         }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={(e) => {
-          e.preventDefault()
-          setIsDragOver(false)
-          if (e.dataTransfer.files.length > 0) onFilesDropped(e.dataTransfer.files)
+          e.preventDefault();
+          setIsDragOver(false);
+          if (e.dataTransfer.files.length > 0)
+            onFilesDropped(e.dataTransfer.files);
         }}
         onClick={() => inputRef.current?.click()}
       >
@@ -50,18 +53,29 @@ export default function UploadZone({
           className="hidden"
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
-              onFilesDropped(e.target.files)
-              e.target.value = ''
+              onFilesDropped(e.target.files);
+              e.target.value = "";
             }
           }}
         />
         <div className="text-[36px] mb-2">📂</div>
         <div className="font-mono text-[13px] text-text-muted">
-          Arrastrá tus <b className="text-orange">CSVs de UTE</b> acá (se acumulan)
+          Arrastrá tus <b className="text-orange">CSVs de UTE</b> acá (se
+          acumulan)
         </div>
         <div className="font-mono text-[10.5px] text-text-dim mt-[6px]">
-          Formato: &quot;Fecha Hora;Energia Activa Entrante kWh;...&quot; · Podés cargar varios archivos · Soporte multi-año
+          Formato: &quot;Fecha Hora;Energia Activa Entrante kWh;...&quot; ·
+          Podés cargar varios archivos · Soporte multi-año
         </div>
+        <button
+          className="mt-[10px] font-mono text-[10.5px] text-text-dim hover:text-orange transition-colors cursor-pointer underline underline-offset-2 decoration-dotted"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowTutorial(true);
+          }}
+        >
+          ¿Cómo descargo el CSV desde el portal de UTE?
+        </button>
 
         {loadedFiles.length > 0 && (
           <div
@@ -83,17 +97,19 @@ export default function UploadZone({
         )}
       </div>
 
+      {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
+
       <div className="text-center mb-5">
         <button
           className="bg-orange text-white font-mono text-[11px] font-semibold px-[14px] py-[6px] rounded-md cursor-pointer hover:opacity-90 transition-opacity"
           onClick={(e) => {
-            e.stopPropagation()
-            onLoadDemo()
+            e.stopPropagation();
+            onLoadDemo();
           }}
         >
           ▶ Cargar ejemplo (Feb 2026)
         </button>
       </div>
     </>
-  )
+  );
 }
