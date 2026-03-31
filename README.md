@@ -4,6 +4,8 @@
 
 Upload the hourly CSV you download from UTE's portal and get a full breakdown: an interactive heatmap, cost comparisons across all three residential plans, and charts that show exactly where your money goes.
 
+![UTE Visualizer screenshot](public/screenshot.png)
+
 ---
 
 ## Features
