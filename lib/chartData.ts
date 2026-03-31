@@ -1,5 +1,5 @@
 import type { MergedData, YearRates } from './types'
-import { dateInfo, getRates, tariff3, tariff2, adj } from './tariffs'
+import { dateInfo, getRates, tariff3, tariff2, tariff1, adj } from './tariffs'
 
 export interface HourProfile {
   hour: number
@@ -23,6 +23,7 @@ export interface CumulativeCost {
   label: string
   g3: number
   g2: number
+  g1: number
 }
 
 export interface RollingDay {
@@ -47,7 +48,8 @@ export function computeChartData(
   mergedData: MergedData,
   userRates: Record<number, Partial<YearRates>>,
   feriadosMap: Record<string, string>,
-  evMode: boolean
+  evMode: boolean,
+  puntaStart = 17
 ): ChartData {
   const allDates = Object.keys(mergedData).sort()
 
@@ -77,6 +79,8 @@ export function computeChartData(
   const cumulativeCosts: CumulativeCost[] = []
   let cumG3 = 0
   let cumG2 = 0
+  let cumG1 = 0
+  const monthKwhRunning: Record<string, number> = {} // mk → kWh consumed before current day
 
   // --- Monthly day-of-month profile ---
   // monthMap: "YYYY-MM" → { day → kWh }
@@ -89,7 +93,7 @@ export function computeChartData(
 
   for (const dk of allDates) {
     const info = dateInfo(dk, feriadosMap)
-    const { R3, R2 } = getRates(info.year, userRates)
+    const { R3, R2, R1 } = getRates(info.year, userRates)
     let dayG3 = 0
     let dayG2 = 0
     let dayKwh = 0
@@ -101,8 +105,8 @@ export function computeChartData(
 
       dayKwh += v
 
-      const t3 = tariff3(h, info.isOffPeak, R3)
-      const t2 = tariff2(h, info.isOffPeak, R2)
+      const t3 = tariff3(h, info.isOffPeak, R3, puntaStart)
+      const t2 = tariff2(h, info.isOffPeak, R2, puntaStart)
       dayG3 += v * t3.rate
       dayG2 += v * t2.rate
 
@@ -128,8 +132,14 @@ export function computeChartData(
     if (!monthMap.has(mk)) monthMap.set(mk, {})
     monthMap.get(mk)![d] = (monthMap.get(mk)![d] ?? 0) + dayKwh
 
+    // Simple tariff: daily cost = totalCost(cumBefore + dayKwh) - totalCost(cumBefore)
+    const cumBefore = monthKwhRunning[mk] ?? 0
+    const dayG1 = tariff1(cumBefore + dayKwh, R1).cost - tariff1(cumBefore, R1).cost
+    monthKwhRunning[mk] = cumBefore + dayKwh
+    cumG1 += dayG1
+
     const label = `${d} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m - 1]}`
-    cumulativeCosts.push({ date: dk, label, g3: cumG3, g2: cumG2 })
+    cumulativeCosts.push({ date: dk, label, g3: cumG3, g2: cumG2, g1: cumG1 })
 
     dailyKwh.push(dayKwh)
     dailyLabels.push(label)

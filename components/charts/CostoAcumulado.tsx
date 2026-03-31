@@ -41,6 +41,10 @@ export default function CostoAcumulado({ data }: Props) {
             type="monotone" dataKey="g2" name="Doble Horario"
             stroke="#8b5cf6" strokeWidth={2} dot={false}
           />
+          <Line
+            type="monotone" dataKey="g1" name="Simple"
+            stroke="#22c55e" strokeWidth={2} dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>

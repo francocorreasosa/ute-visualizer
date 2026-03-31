@@ -12,6 +12,7 @@ interface Props {
   feriadosMap: Record<string, string>
   maxV: number
   evMode: boolean
+  puntaStart: number
   onCellHover: (state: TooltipState) => void
   onCellLeave: () => void
 }
@@ -36,10 +37,26 @@ const Heatmap = memo(function Heatmap({
   feriadosMap,
   maxV,
   evMode,
+  puntaStart,
   onCellHover,
   onCellLeave,
 }: Props) {
   const yearChangeDates = getYearChangeDates(allDates)
+
+  // Precompute cumulative kWh consumed BEFORE each (date, hour) within the month.
+  // allDates is sorted, so we can iterate in order and accumulate per month.
+  const cellCumBefore: Record<string, Record<number, number>> = {}
+  const monthRunning: Record<string, number> = {}
+  for (const dk of allDates) {
+    const mk = dk.substring(0, 7)
+    if (!(mk in monthRunning)) monthRunning[mk] = 0
+    cellCumBefore[dk] = {}
+    for (let h = 0; h < 24; h++) {
+      cellCumBefore[dk][h] = monthRunning[mk]
+      const v = adj(mergedData[dk]?.[h] ?? null, evMode)
+      if (v != null) monthRunning[mk] += v
+    }
+  }
 
   // Single onMouseMove handler for all cells (event delegation)
   const handleMouseMove = useCallback(
@@ -55,6 +72,8 @@ const Heatmap = memo(function Heatmap({
       const r = parseFloat(td.dataset.r!)
       const tn2 = td.dataset.t2!
       const r2 = parseFloat(td.dataset.r2!)
+      const tn1 = td.dataset.t1!
+      const r1 = parseFloat(td.dataset.r1!)
       const fn = td.dataset.fn || ''
       const yr = parseInt(td.dataset.y!)
 
@@ -72,6 +91,7 @@ const Heatmap = memo(function Heatmap({
           dateStr: dk, hour: h, kwh, kwhRaw,
           tariff3Name: tn, tariff3Rate: r,
           tariff2Name: tn2, tariff2Rate: r2,
+          tariff1Rate: r1, tariff1Name: tn1,
           feriadoName: fn, dayType, year: yr,
           dn: info.dn, day: info.day, mn: info.mn,
         },
@@ -94,7 +114,7 @@ const Heatmap = memo(function Heatmap({
               <th
                 key={h}
                 className={`font-mono text-[10.5px] font-medium py-[3px] text-center min-w-[30px] ${
-                  h <= 6 ? 'text-green' : h >= 17 && h <= 20 ? 'text-red' : 'text-blue'
+                  h <= 6 ? 'text-green' : h >= puntaStart && h <= puntaStart + 3 ? 'text-red' : 'text-blue'
                 }`}
               >
                 {String(h).padStart(2, '0')}
@@ -115,8 +135,11 @@ const Heatmap = memo(function Heatmap({
             const cells = HOURS.map((h) => {
               const vRaw = mergedData[dk]?.[h] ?? null
               const v = adj(vRaw, evMode)
-              const t3 = tariff3(h, info.isOffPeak, rates.R3)
-              const t2 = tariff2(h, info.isOffPeak, rates.R2)
+              const t3 = tariff3(h, info.isOffPeak, rates.R3, puntaStart)
+              const t2 = tariff2(h, info.isOffPeak, rates.R2, puntaStart)
+              const cumBefore = cellCumBefore[dk]?.[h] ?? 0
+              const r1 = cumBefore < 100 ? rates.R1.e1 : cumBefore < 600 ? rates.R1.e2 : rates.R1.e3
+              const t1name = cumBefore < 100 ? '1° esc.' : cumBefore < 600 ? '2° esc.' : '3° esc.'
 
               if (v != null) {
                 dayTotal += v
@@ -136,6 +159,8 @@ const Heatmap = memo(function Heatmap({
                   data-r={t3.rate}
                   data-t2={t2.name}
                   data-r2={t2.rate}
+                  data-t1={t1name}
+                  data-r1={r1}
                   data-fn={info.feriadoName}
                   data-y={info.year}
                 />

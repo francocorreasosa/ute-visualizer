@@ -1,14 +1,38 @@
-import type { TariffResult, Triple3Rates, Triple2Rates, DateInfo, YearRates } from './types'
+import type { TariffResult, Triple3Rates, Triple2Rates, DateInfo, YearRates, BandCostsSimple, BandKwhSimple } from './types'
+
+export interface SimpleRates {
+  e1: number
+  e2: number
+  e3: number
+}
+
+export interface Tariff1Result {
+  cost: number
+  c: BandCostsSimple
+  k: BandKwhSimple
+}
+
+/** Apply marginal block pricing to a monthly kWh total */
+export function tariff1(monthlyKwh: number, R1: SimpleRates): Tariff1Result {
+  const k_e1 = Math.min(monthlyKwh, 100)
+  const k_e2 = Math.min(Math.max(monthlyKwh - 100, 0), 500)
+  const k_e3 = Math.max(monthlyKwh - 600, 0)
+  return {
+    cost: k_e1 * R1.e1 + k_e2 * R1.e2 + k_e3 * R1.e3,
+    c: { e1: k_e1 * R1.e1, e2: k_e2 * R1.e2, e3: k_e3 * R1.e3 },
+    k: { e1: k_e1, e2: k_e2, e3: k_e3 },
+  }
+}
 import { DAY_NAMES, MONTH_NAMES, DEFAULT_RATES } from './constants'
 
-export function tariff3(h: number, isOffPeak: boolean, R3: Triple3Rates): TariffResult {
+export function tariff3(h: number, isOffPeak: boolean, R3: Triple3Rates, puntaStart = 17): TariffResult {
   if (h >= 0 && h <= 6) return { name: 'Valle', rate: R3.valle }
-  if (h >= 17 && h <= 20 && !isOffPeak) return { name: 'Punta', rate: R3.punta }
+  if (h >= puntaStart && h <= puntaStart + 3 && !isOffPeak) return { name: 'Punta', rate: R3.punta }
   return { name: 'Llano', rate: R3.llano }
 }
 
-export function tariff2(h: number, isOffPeak: boolean, R2: Triple2Rates): TariffResult {
-  if (h >= 17 && h <= 20 && !isOffPeak) return { name: 'Punta', rate: R2.punta }
+export function tariff2(h: number, isOffPeak: boolean, R2: Triple2Rates, puntaStart = 17): TariffResult {
+  if (h >= puntaStart && h <= puntaStart + 3 && !isOffPeak) return { name: 'Punta', rate: R2.punta }
   return { name: 'Fuera de Punta', rate: R2.fp }
 }
 
@@ -55,7 +79,7 @@ export function dateInfo(ds: string, feriadosMap: Record<string, string>): DateI
 export function getRates(
   year: number,
   userRates: Record<number, Partial<YearRates>>
-): { R3: Triple3Rates; R2: Triple2Rates } {
+): { R3: Triple3Rates; R2: Triple2Rates; R1: SimpleRates } {
   const def = DEFAULT_RATES[year] ?? DEFAULT_RATES[2026]
   const saved = userRates[year] ?? {}
   return {
@@ -67,6 +91,11 @@ export function getRates(
     R2: {
       punta: Number(saved.t2_punta ?? def.t2_punta),
       fp: Number(saved.t2_fp ?? def.t2_fp),
+    },
+    R1: {
+      e1: Number(saved.t1_e1 ?? def.t1_e1),
+      e2: Number(saved.t1_e2 ?? def.t1_e2),
+      e3: Number(saved.t1_e3 ?? def.t1_e3),
     },
   }
 }

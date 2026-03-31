@@ -1,8 +1,9 @@
 interface Props {
   maxV: number
+  puntaStart: number
 }
 
-export default function HeatmapLegend({ maxV }: Props) {
+export default function HeatmapLegend({ maxV, puntaStart }: Props) {
   return (
     <>
       <div className="flex items-center justify-center gap-2 mt-[18px] font-mono text-[10.5px] text-text-dim">
@@ -28,12 +29,12 @@ export default function HeatmapLegend({ maxV }: Props) {
         </div>
         <div className="flex items-center gap-[6px]">
           <div className="w-[10px] h-[10px] rounded-[2px] bg-red" />
-          <span className="text-red">Punta 17–20</span>
+          <span className="text-red">Punta {puntaStart}–{puntaStart + 3}</span>
         </div>
       </div>
 
       <p className="text-center mt-[6px] font-mono text-[10px] text-text-muted">
-        Fines de semana y feriados: sin tarifa Punta (17–20 pasa a Llano / Fuera de Punta)
+        Fines de semana y feriados: sin tarifa Punta ({puntaStart}–{puntaStart + 3} pasa a Llano / Fuera de Punta)
       </p>
     </>
   )

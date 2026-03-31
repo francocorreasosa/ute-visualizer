@@ -21,17 +21,26 @@ import TabBar from '@/components/TabBar'
 
 export default function Page() {
   const [state, dispatch] = useAppState()
-  const { mergedData, loadedFiles, detectedYears, userRates, feriadosMap, evMode, tooltip } = state
+  const { mergedData, loadedFiles, detectedYears, userRates, feriadosMap, evMode, puntaStart, tooltip } = state
   const [activeTab, setActiveTab] = useState<'heatmap' | 'charts'>('heatmap')
 
   // Single computation pass — only re-runs when inputs change
   const { allDates, maxV, stats, comparison } = useMemo(
-    () => computeAll(mergedData, userRates, feriadosMap, evMode),
-    [mergedData, userRates, feriadosMap, evMode]
+    () => computeAll(mergedData, userRates, feriadosMap, evMode, puntaStart),
+    [mergedData, userRates, feriadosMap, evMode, puntaStart]
   )
 
   const chartData = useMemo(
-    () => computeChartData(mergedData, userRates, feriadosMap, evMode),
+    () => computeChartData(mergedData, userRates, feriadosMap, evMode, puntaStart),
+    [mergedData, userRates, feriadosMap, evMode, puntaStart]
+  )
+
+  // Compute best cost for each punta option to show optimal recommendation
+  const puntaAnalysis = useMemo(() =>
+    ([17, 18, 19] as const).map(ps => {
+      const { comparison } = computeAll(mergedData, userRates, feriadosMap, evMode, ps)
+      return { ps, best: Math.min(comparison.g3, comparison.g2, comparison.g1) }
+    }),
     [mergedData, userRates, feriadosMap, evMode]
   )
 
@@ -94,6 +103,7 @@ export default function Page() {
         <TariffEditor
           detectedYears={detectedYears}
           userRates={userRates}
+          puntaStart={puntaStart}
           onRateChange={(year, field, rawValue) => {
             const value = parseNum(rawValue)
             if (!isNaN(value)) {
@@ -138,6 +148,9 @@ export default function Page() {
           <TabBar activeTab={activeTab} onChange={setActiveTab} />
           <ResultsSection
             activeTab={activeTab}
+            puntaStart={puntaStart}
+            puntaAnalysis={puntaAnalysis}
+            onPuntaChange={(v) => dispatch({ type: 'SET_PUNTA_START', payload: v })}
             allDates={allDates}
             mergedData={mergedData}
             fileCount={loadedFiles.length}

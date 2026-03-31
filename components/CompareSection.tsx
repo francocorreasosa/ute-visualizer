@@ -8,31 +8,39 @@ interface Props {
   stats: ComputedStats
   dayCount: number
   isMultiYear: boolean
+  puntaStart: number
 }
 
-export default function CompareSection({ comparison, stats, dayCount, isMultiYear }: Props) {
-  const { g3, g2, c3, c2, k3, k2 } = comparison
+export default function CompareSection({ comparison, stats, dayCount, isMultiYear, puntaStart }: Props) {
+  const { g3, g2, g1, c3, c2, c1, k3, k2, k1 } = comparison
   const { totalKwh } = stats
-  const diff = g3 - g2
-  const diffPct = Math.abs(diff / Math.min(g3, g2)) * 100
-  const tripleWins = diff < 0
-  const dobleWins = diff > 0
-  const winnerLabel = tripleWins ? 'Triple horario' : 'Doble horario'
+  const puntaLabel = `${puntaStart}–${puntaStart + 3}`
+
+  const minCost = Math.min(g3, g2, g1)
 
   const triple3Breakdown = [
     { label: 'Valle (00–06)', value: fmt(c3.Valle), color: '#22c55e' },
     { label: `${k3.Valle.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k3.Valle / totalKwh) * 100).toFixed(0) : 0}%` },
-    { label: 'Llano (07–16, 21–23)', value: fmt(c3.Llano), color: '#3b82f6' },
+    { label: 'Llano (resto lab.)', value: fmt(c3.Llano), color: '#3b82f6' },
     { label: `${k3.Llano.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k3.Llano / totalKwh) * 100).toFixed(0) : 0}%` },
-    { label: 'Punta (17–20 lab.)', value: fmt(c3.Punta), color: '#ef4444' },
+    { label: `Punta (${puntaLabel} lab.)`, value: fmt(c3.Punta), color: '#ef4444' },
     { label: `${k3.Punta.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k3.Punta / totalKwh) * 100).toFixed(0) : 0}%` },
   ]
 
   const doble2Breakdown = [
-    { label: 'Punta (17–20 lab.)', value: fmt(c2.Punta), color: '#ef4444' },
+    { label: `Punta (${puntaLabel} lab.)`, value: fmt(c2.Punta), color: '#ef4444' },
     { label: `${k2.Punta.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k2.Punta / totalKwh) * 100).toFixed(0) : 0}%` },
     { label: 'Fuera de Punta (resto)', value: fmt(c2['Fuera de Punta']), color: '#3b82f6' },
     { label: `${k2['Fuera de Punta'].toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k2['Fuera de Punta'] / totalKwh) * 100).toFixed(0) : 0}%` },
+  ]
+
+  const simple1Breakdown = [
+    { label: '1° escalón (1–100 kWh)', value: fmt(c1.e1), color: '#22c55e' },
+    { label: `${k1.e1.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k1.e1 / totalKwh) * 100).toFixed(0) : 0}%` },
+    { label: '2° escalón (101–600 kWh)', value: fmt(c1.e2), color: '#f59e0b' },
+    { label: `${k1.e2.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k1.e2 / totalKwh) * 100).toFixed(0) : 0}%` },
+    { label: '3° escalón (601+ kWh)', value: fmt(c1.e3), color: '#ef4444' },
+    { label: `${k1.e3.toFixed(0)} kWh`, value: `${totalKwh > 0 ? ((k1.e3 / totalKwh) * 100).toFixed(0) : 0}%` },
   ]
 
   return (
@@ -46,13 +54,13 @@ export default function CompareSection({ comparison, stats, dayCount, isMultiYea
           backgroundClip: 'text',
         }}
       >
-        Triple Horario vs Doble Horario
+        Comparación de tarifas
       </h2>
-      <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
+      <div className="grid grid-cols-3 gap-4 max-[768px]:grid-cols-1">
         <PlanCard
           planName="Triple Horario"
           total={g3}
-          isWinner={tripleWins}
+          isWinner={g3 === minCost}
           breakdown={triple3Breakdown}
           avgPerKwh={totalKwh > 0 ? g3 / totalKwh : 0}
           accentColor="#ff6b2b"
@@ -60,16 +68,24 @@ export default function CompareSection({ comparison, stats, dayCount, isMultiYea
         <PlanCard
           planName="Doble Horario"
           total={g2}
-          isWinner={dobleWins}
+          isWinner={g2 === minCost}
           breakdown={doble2Breakdown}
           avgPerKwh={totalKwh > 0 ? g2 / totalKwh : 0}
           accentColor="#8b5cf6"
         />
+        <PlanCard
+          planName="Simple"
+          total={g1}
+          isWinner={g1 === minCost}
+          breakdown={simple1Breakdown}
+          avgPerKwh={totalKwh > 0 ? g1 / totalKwh : 0}
+          accentColor="#22c55e"
+        />
       </div>
       <DiffBar
-        diff={diff}
-        diffPct={diffPct}
-        winnerLabel={winnerLabel}
+        g3={g3}
+        g2={g2}
+        g1={g1}
         dayCount={dayCount}
         isMultiYear={isMultiYear}
       />

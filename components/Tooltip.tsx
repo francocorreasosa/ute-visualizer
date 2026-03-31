@@ -17,11 +17,13 @@ export default function Tooltip({ state }: Props) {
   const { content, x, y } = state
   const {
     dn, day, mn, year, hour, kwh, kwhRaw,
-    tariff3Name, tariff3Rate, tariff2Name, tariff2Rate, dayType,
+    tariff3Name, tariff3Rate, tariff2Name, tariff2Rate,
+    tariff1Rate, tariff1Name, dayType,
   } = content
 
   const cost3 = kwh != null ? (kwh * tariff3Rate).toFixed(1) : '—'
   const cost2 = kwh != null ? (kwh * tariff2Rate).toFixed(1) : '—'
+  const cost1 = kwh != null ? (kwh * tariff1Rate).toFixed(1) : '—'
   const hourStr = String(hour).padStart(2, '0')
   const evAdjusted = kwh != null && kwhRaw != null && Math.abs(kwh - kwhRaw) > 0.001
 
@@ -53,6 +55,11 @@ export default function Tooltip({ state }: Props) {
       <span className="text-[12px] font-semibold text-purple">
         Doble: ${cost2}{' '}
         <span className="text-text-dim text-[10px]">{tariff2Name} ${tariff2Rate}</span>
+      </span>
+      <br />
+      <span className="text-[12px] font-semibold text-green">
+        Simple: ${cost1}{' '}
+        <span className="text-text-dim text-[10px]">{tariff1Name} ${tariff1Rate}</span>
       </span>
     </div>,
     document.body

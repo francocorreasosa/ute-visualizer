@@ -9,6 +9,7 @@ const initialState: AppState = {
   userRates: {},
   feriadosMap: { ...INITIAL_FERIADOS_MAP },
   evMode: false,
+  puntaStart: 17,
   tooltip: { visible: false, x: 0, y: 0, content: null },
 }
 
@@ -76,6 +77,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_EV_MODE':
       return { ...state, evMode: action.payload }
+
+    case 'SET_PUNTA_START':
+      return { ...state, puntaStart: action.payload }
 
     case 'SHOW_TOOLTIP':
       return { ...state, tooltip: action.payload }

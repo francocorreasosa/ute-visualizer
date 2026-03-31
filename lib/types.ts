@@ -13,6 +13,9 @@ export interface YearRates {
   t3_punta: number
   t2_punta: number
   t2_fp: number
+  t1_e1: number
+  t1_e2: number
+  t1_e3: number
 }
 
 export interface Triple3Rates {
@@ -52,6 +55,8 @@ export interface TooltipContent {
   tariff3Rate: number
   tariff2Name: string
   tariff2Rate: number
+  tariff1Rate: number
+  tariff1Name: string  // "1° esc.", "2° esc.", "3° esc."
   feriadoName: string
   dayType: string
   year: number
@@ -74,6 +79,7 @@ export interface AppState {
   userRates: Record<number, Partial<YearRates>>
   feriadosMap: Record<string, string>
   evMode: boolean
+  puntaStart: 17 | 18 | 19
   tooltip: TooltipState
 }
 
@@ -85,6 +91,7 @@ export type Action =
   | { type: 'ADD_FERIADO'; payload: { date: string; name: string } }
   | { type: 'REMOVE_FERIADO'; payload: string }
   | { type: 'SET_EV_MODE'; payload: boolean }
+  | { type: 'SET_PUNTA_START'; payload: 17 | 18 | 19 }
   | { type: 'SHOW_TOOLTIP'; payload: TooltipState }
   | { type: 'HIDE_TOOLTIP' }
 
@@ -97,6 +104,18 @@ export interface BandCosts {
 export interface BandCosts2 {
   Punta: number
   'Fuera de Punta': number
+}
+
+export interface BandCostsSimple {
+  e1: number
+  e2: number
+  e3: number
+}
+
+export interface BandKwhSimple {
+  e1: number
+  e2: number
+  e3: number
 }
 
 export interface BandKwh {
@@ -120,10 +139,13 @@ export interface ComputedStats {
 export interface ComputedComparison {
   g3: number
   g2: number
+  g1: number
   c3: BandCosts
   c2: BandCosts2
+  c1: BandCostsSimple
   k3: BandKwh
   k2: BandKwh2
+  k1: BandKwhSimple
 }
 
 export interface ComputeResult {

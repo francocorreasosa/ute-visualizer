@@ -1,16 +1,31 @@
 import { fmt } from '@/lib/format'
 
 interface Props {
-  diff: number
-  diffPct: number
-  winnerLabel: string
+  g3: number
+  g2: number
+  g1: number
   dayCount: number
   isMultiYear: boolean
 }
 
-export default function DiffBar({ diff, diffPct, winnerLabel, dayCount, isMultiYear }: Props) {
-  const savings = Math.abs(diff)
-  const barWidth = Math.min(diffPct * 3, 100)
+const PLAN_NAMES: Record<string, string> = {
+  triple: 'Triple Horario',
+  doble: 'Doble Horario',
+  simple: 'Simple',
+}
+
+export default function DiffBar({ g3, g2, g1, dayCount, isMultiYear }: Props) {
+  const plans = [
+    { key: 'triple', cost: g3 },
+    { key: 'doble', cost: g2 },
+    { key: 'simple', cost: g1 },
+  ].sort((a, b) => a.cost - b.cost)
+
+  const winner = plans[0]
+  const second = plans[1]
+  const savings = second.cost - winner.cost
+  const savingsPct = second.cost > 0 ? (savings / second.cost) * 100 : 0
+  const barWidth = Math.min(savingsPct * 3, 100)
 
   return (
     <div className="mt-5 bg-card rounded-[14px] px-6 py-5 border border-[rgba(255,255,255,0.06)] text-center">
@@ -20,18 +35,14 @@ export default function DiffBar({ diff, diffPct, winnerLabel, dayCount, isMultiY
       <div className="w-full max-w-[400px] h-[28px] bg-slate-dark rounded-md overflow-hidden mx-auto">
         <div
           className="h-full rounded-md transition-[width] duration-700 ease-in-out"
-          style={{
-            width: `${barWidth}%`,
-            background: 'linear-gradient(90deg,#22c55e,#16a34a)',
-          }}
+          style={{ width: `${barWidth}%`, background: 'linear-gradient(90deg,#22c55e,#16a34a)' }}
         />
       </div>
       <div className="font-mono text-[24px] font-bold text-green mt-[10px]">
-        {diff === 0 ? 'Empate' : `Ahorrás ${fmt(savings)} con ${winnerLabel}`}
+        {savings < 0.01 ? 'Empate' : `Ahorrás ${fmt(savings)} con ${PLAN_NAMES[winner.key]}`}
       </div>
       <div className="font-mono text-[13px] text-text-muted mt-[2px]">
-        {diffPct.toFixed(1)}%{' '}
-        {diff > 0 ? 'más barato con doble' : 'más barato con triple'}
+        {savingsPct.toFixed(1)}% más barato que {PLAN_NAMES[second.key]}
       </div>
     </div>
   )

@@ -4,8 +4,9 @@ export const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 export const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 export const DEFAULT_RATES: Record<number, YearRates> = {
-  2025: { t3_valle: 2.928, t3_llano: 6.1976, t3_punta: 14.02146, t2_punta: 14.02146, t2_fp: 5.55832 },
-  2026: { t3_valle: 2.98, t3_llano: 6.309, t3_punta: 14.68148, t2_punta: 14.68148, t2_fp: 5.821 },
+  // t1 rates include 22% IVA. 2025: 6.537×1.22, 8.194×1.22, 10.217×1.22. 2026: 6.744×1.22, 8.452×1.22, 10.539×1.22
+  2025: { t3_valle: 2.928, t3_llano: 6.1976, t3_punta: 14.02146, t2_punta: 14.02146, t2_fp: 5.55832, t1_e1: 7.975, t1_e2: 9.997, t1_e3: 12.465 },
+  2026: { t3_valle: 2.98, t3_llano: 6.309, t3_punta: 14.68148, t2_punta: 14.68148, t2_fp: 5.821, t1_e1: 8.228, t1_e2: 10.311, t1_e3: 12.858 },
 }
 
 export const INITIAL_FERIADOS_MAP: Record<string, string> = {
