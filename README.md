@@ -38,10 +38,11 @@ Upload the hourly CSV you download from UTE's portal and get a full breakdown: a
 ## Getting your UTE data
 
 1. Log in at [mi.ute.com.uy](https://mi.ute.com.uy)
-2. Go to **Consumo → Detalle de consumo**
-3. Select your installation and a date range (up to 12 months per file)
-4. Export as **CSV**
-5. Drop the file into UTE Visualizer
+2. In the left sidebar, click **Mis Servicios**
+3. From the options panel, select **Curva de Consumo Potencia Máxima**
+4. Choose your date range and set the period to **1 hora** — this is the format the app requires
+5. Click **Descargar** to download the CSV
+6. Drop the file into UTE Visualizer
 
 > You can export multiple CSVs (e.g. one per year) and load them all at once — the app merges them automatically.
 
@@ -52,8 +53,8 @@ Upload the hourly CSV you download from UTE's portal and get a full breakdown: a
 ```bash
 git clone https://github.com/francocorreasosa/ute-visualizer.git
 cd ute-visualizer
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -61,8 +62,8 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Build for production
 
 ```bash
-npm run build
-npm start
+pnpm build
+pnpm start
 ```
 
 ---
