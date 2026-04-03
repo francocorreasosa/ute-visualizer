@@ -1,4 +1,4 @@
-import type { MergedData, YearRates, TooltipState, ComputedStats, ComputedComparison } from '@/lib/types'
+import type { MergedData, YearRates, TooltipState, ComputedStats, ComputedComparison, EVConfig } from '@/lib/types'
 import type { ChartData } from '@/lib/chartData'
 import DateRangeInfo from './DateRangeInfo'
 import Heatmap from './Heatmap'
@@ -20,6 +20,7 @@ interface Props {
   feriadosMap: Record<string, string>
   maxV: number
   evMode: boolean
+  evConfig: EVConfig
   stats: ComputedStats
   comparison: ComputedComparison
   chartData: ChartData
@@ -40,6 +41,7 @@ export default function ResultsSection({
   feriadosMap,
   maxV,
   evMode,
+  evConfig,
   stats,
   comparison,
   chartData,
@@ -73,6 +75,7 @@ export default function ResultsSection({
               feriadosMap={feriadosMap}
               maxV={maxV}
               evMode={evMode}
+              evConfig={evConfig}
               puntaStart={puntaStart}
               onCellHover={onCellHover}
               onCellLeave={onCellLeave}

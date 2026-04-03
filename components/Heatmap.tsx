@@ -1,8 +1,8 @@
 'use client'
 
 import { memo, useCallback, Fragment } from 'react'
-import type { MergedData, YearRates, TooltipState } from '@/lib/types'
-import { tariff3, tariff2, colorCell, dateInfo, getRates, adj } from '@/lib/tariffs'
+import type { MergedData, YearRates, TooltipState, EVConfig } from '@/lib/types'
+import { tariff3, tariff2, colorCell, dateInfo, getRates, adj, evHourlyKw } from '@/lib/tariffs'
 import { fmt } from '@/lib/format'
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   feriadosMap: Record<string, string>
   maxV: number
   evMode: boolean
+  evConfig: EVConfig
   puntaStart: number
   onCellHover: (state: TooltipState) => void
   onCellLeave: () => void
@@ -37,6 +38,7 @@ const Heatmap = memo(function Heatmap({
   feriadosMap,
   maxV,
   evMode,
+  evConfig,
   puntaStart,
   onCellHover,
   onCellLeave,
@@ -53,8 +55,9 @@ const Heatmap = memo(function Heatmap({
     cellCumBefore[dk] = {}
     for (let h = 0; h < 24; h++) {
       cellCumBefore[dk][h] = monthRunning[mk]
-      const v = adj(mergedData[dk]?.[h] ?? null, evMode)
-      if (v != null) monthRunning[mk] += v
+      const base = adj(mergedData[dk]?.[h] ?? null, evMode)
+      const v = (base ?? 0) + evHourlyKw(h, evConfig)
+      if (base != null || evHourlyKw(h, evConfig) > 0) monthRunning[mk] += v
     }
   }
 
@@ -134,7 +137,9 @@ const Heatmap = memo(function Heatmap({
 
             const cells = HOURS.map((h) => {
               const vRaw = mergedData[dk]?.[h] ?? null
-              const v = adj(vRaw, evMode)
+              const vAdj = adj(vRaw, evMode)
+              const evLoad = evHourlyKw(h, evConfig)
+              const v = vAdj != null || evLoad > 0 ? (vAdj ?? 0) + evLoad : null
               const t3 = tariff3(h, info.isOffPeak, rates.R3, puntaStart)
               const t2 = tariff2(h, info.isOffPeak, rates.R2, puntaStart)
               const cumBefore = cellCumBefore[dk]?.[h] ?? 0

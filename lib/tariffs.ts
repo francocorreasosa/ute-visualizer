@@ -109,7 +109,7 @@ export function adj(v: number | null, evMode: boolean): number | null {
 
 /** Returns the position (0-based) of hour h inside the charging window, or -1 if outside. */
 function hourPositionInWindow(h: number, start: number, end: number): number {
-  if (start === end) return -1
+  if (start === end) return h  // full-day window: position equals the hour itself
   if (start < end) return h >= start && h < end ? h - start : -1
   // window wraps around midnight
   if (h >= start) return h - start
@@ -120,11 +120,15 @@ function hourPositionInWindow(h: number, start: number, end: number): number {
 /** Returns kW of EV charging load to add for hour h given the EV config. */
 export function evHourlyKw(h: number, cfg: EVConfig): number {
   if (!cfg.enabled || cfg.monthlyKm <= 0 || cfg.rangeKm <= 0 || cfg.batteryKwh <= 0 || cfg.chargingKw <= 0) return 0
-  const dailyKwh = (cfg.monthlyKm / 30) * (cfg.batteryKwh / cfg.rangeKm) / (cfg.efficiency / 100)
+  if (!Number.isFinite(cfg.efficiency) || cfg.efficiency <= 0) return 0
+  const efficiency = Math.min(Math.max(cfg.efficiency, 1), 100)
+  const dailyKwh = (cfg.monthlyKm / 30) * (cfg.batteryKwh / cfg.rangeKm) / (efficiency / 100)
   const hoursNeeded = dailyKwh / cfg.chargingKw
-  const windowSize = cfg.chargeStart < cfg.chargeEnd
-    ? cfg.chargeEnd - cfg.chargeStart
-    : (24 - cfg.chargeStart) + cfg.chargeEnd
+  const windowSize = cfg.chargeStart === cfg.chargeEnd
+    ? 24
+    : cfg.chargeStart < cfg.chargeEnd
+      ? cfg.chargeEnd - cfg.chargeStart
+      : (24 - cfg.chargeStart) + cfg.chargeEnd
   const effectiveHours = Math.min(hoursNeeded, windowSize)
   const pos = hourPositionInWindow(h, cfg.chargeStart, cfg.chargeEnd)
   if (pos < 0) return 0

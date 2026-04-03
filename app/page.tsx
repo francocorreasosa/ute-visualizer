@@ -153,6 +153,7 @@ export default function Page() {
             feriadosMap={feriadosMap}
             maxV={maxV}
             evMode={evMode}
+            evConfig={evConfig}
             stats={stats}
             comparison={comparison}
             chartData={chartData}

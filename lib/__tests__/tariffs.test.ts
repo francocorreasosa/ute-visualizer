@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { tariff1, tariff2, tariff3, adj, colorCell, dateInfo, getRates } from '../tariffs'
-import type { SimpleRates, Triple3Rates, Triple2Rates } from '../tariffs'
+import { tariff1, tariff2, tariff3, adj, colorCell, dateInfo, getRates, evHourlyKw } from '../tariffs'
+import type { SimpleRates } from '../tariffs'
+import type { Triple3Rates, Triple2Rates, EVConfig } from '../types'
 
 // 2026 default rates for deterministic tests
 const R1: SimpleRates = { e1: 8.228, e2: 10.311, e3: 12.858 }
@@ -170,6 +171,95 @@ describe('dateInfo', () => {
     expect(info.year).toBe(2026)
     expect(info.mn).toBe('Jul')
     expect(info.day).toBe(18)
+  })
+})
+
+// ─── evHourlyKw ──────────────────────────────────────────────────────────────
+describe('evHourlyKw', () => {
+  // Base config: 300 km/month, 60 kWh battery, 300 km range, 100% efficiency
+  // dailyKwh = (300/30) * (60/300) / 1 = 10 * 0.2 = 2 kWh/day
+  // chargingKw = 2 → hoursNeeded = 2/2 = 1.0 hour
+  const base: EVConfig = {
+    enabled: true,
+    monthlyKm: 300,
+    batteryKwh: 60,
+    rangeKm: 300,
+    chargingKw: 2,
+    chargeStart: 0,
+    chargeEnd: 1,  // 1-hour window: only h=0
+    efficiency: 100,
+  }
+
+  it('returns 0 when disabled', () => {
+    expect(evHourlyKw(0, { ...base, enabled: false })).toBe(0)
+  })
+
+  it('returns 0 for efficiency <= 0', () => {
+    expect(evHourlyKw(0, { ...base, efficiency: 0 })).toBe(0)
+  })
+
+  it('hour inside window gets full chargingKw for a complete hour', () => {
+    // hoursNeeded=1.0, so h=0 (pos=0) should get full 2 kW
+    expect(evHourlyKw(0, base)).toBeCloseTo(2)
+  })
+
+  it('hour outside window returns 0', () => {
+    expect(evHourlyKw(1, base)).toBe(0)
+    expect(evHourlyKw(12, base)).toBe(0)
+    expect(evHourlyKw(23, base)).toBe(0)
+  })
+
+  it('fractional last hour returns partial kW', () => {
+    // dailyKwh=2, chargingKw=4 → hoursNeeded=0.5
+    // h=0 (pos=0): pos < floor(0.5)=0? no. pos < 0.5? yes → 4 * 0.5 = 2 kW
+    const cfg: EVConfig = { ...base, chargingKw: 4, chargeEnd: 4 }
+    expect(evHourlyKw(0, cfg)).toBeCloseTo(2)
+    expect(evHourlyKw(1, cfg)).toBe(0)
+  })
+
+  it('overnight window (wrap around midnight) distributes load correctly', () => {
+    // 3000 km/month, 60 kWh battery, 300 km range, 100% efficiency, 7 kW charger
+    // dailyKwh = (3000/30) * (60/300) = 100 * 0.2 = 20 kWh/day
+    // hoursNeeded = 20/7 ≈ 2.857 hours
+    // window: 22→6 (8 hours): pos 0=h22, pos 1=h23, pos 2=h0, pos 3=h1 ...
+    const cfg: EVConfig = {
+      ...base,
+      monthlyKm: 3000,
+      chargingKw: 7,
+      chargeStart: 22,
+      chargeEnd: 6,
+    }
+    expect(evHourlyKw(22, cfg)).toBeCloseTo(7)          // pos 0 < floor(2.857)=2
+    expect(evHourlyKw(23, cfg)).toBeCloseTo(7)          // pos 1 < 2
+    expect(evHourlyKw(0, cfg)).toBeCloseTo(7 * 0.857, 1) // pos 2, fractional
+    expect(evHourlyKw(1, cfg)).toBe(0)                  // pos 3 > 2.857
+    expect(evHourlyKw(21, cfg)).toBe(0)                 // outside window
+  })
+
+  it('start === end is treated as a full 24-hour window', () => {
+    // All 24 hours should receive load
+    const cfg: EVConfig = { ...base, chargeStart: 0, chargeEnd: 0 }
+    // dailyKwh=2, chargingKw=2, hoursNeeded=1.0
+    // h=0 is pos 0: full hour → 2 kW
+    // h=1 is pos 1: > 1.0 → 0
+    expect(evHourlyKw(0, cfg)).toBeCloseTo(2)
+    expect(evHourlyKw(1, cfg)).toBe(0)
+  })
+
+  it('caps charging at window size when demand exceeds it', () => {
+    // dailyKwh=100 kWh (enormous), chargingKw=10, hoursNeeded=10
+    // but window is only 2 hours (start=0, end=2)
+    // effectiveHours = min(10, 2) = 2
+    const cfg: EVConfig = {
+      ...base,
+      monthlyKm: 15000,   // (15000/30)*0.2=100 kWh/day
+      chargingKw: 10,
+      chargeStart: 0,
+      chargeEnd: 2,
+    }
+    expect(evHourlyKw(0, cfg)).toBeCloseTo(10) // full hour
+    expect(evHourlyKw(1, cfg)).toBeCloseTo(10) // full hour
+    expect(evHourlyKw(2, cfg)).toBe(0)         // outside window
   })
 })
 
