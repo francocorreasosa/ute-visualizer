@@ -36,12 +36,21 @@ export interface RollingDay {
 // day 1–31 as key, value = total kWh that day
 export type MonthSeries = { monthKey: string; label: string; days: Record<number, number> }
 
+export interface MonthlyCost {
+  monthKey: string
+  label: string
+  g3: number
+  g2: number
+  g1: number
+}
+
 export interface ChartData {
   hourProfile: HourProfile[]
   dowProfile: DowProfile[]
   cumulativeCosts: CumulativeCost[]
   rollingDays: RollingDay[]
   monthSeries: MonthSeries[]  // only populated when ≥ 2 distinct months
+  monthlyCosts: MonthlyCost[]
 }
 
 export function computeChartData(
@@ -62,6 +71,7 @@ export function computeChartData(
       cumulativeCosts: [],
       rollingDays: [],
       monthSeries: [],
+      monthlyCosts: [],
     }
   }
 
@@ -85,6 +95,9 @@ export function computeChartData(
   // --- Monthly day-of-month profile ---
   // monthMap: "YYYY-MM" → { day → kWh }
   const monthMap = new Map<string, Record<number, number>>()
+
+  // --- Monthly cost accumulation (for Doble vs Triple delta table) ---
+  const monthCostMap = new Map<string, { g3: number; g2: number; year: number }>()
 
   // --- Rolling 7-day ---
   const dailyKwh: number[] = []
@@ -131,6 +144,9 @@ export function computeChartData(
     const mk = `${y}-${String(m).padStart(2, '0')}`
     if (!monthMap.has(mk)) monthMap.set(mk, {})
     monthMap.get(mk)![d] = (monthMap.get(mk)![d] ?? 0) + dayKwh
+    if (!monthCostMap.has(mk)) monthCostMap.set(mk, { g3: 0, g2: 0, year: info.year })
+    monthCostMap.get(mk)!.g3 += dayG3
+    monthCostMap.get(mk)!.g2 += dayG2
 
     // Simple tariff: daily cost = totalCost(cumBefore + dayKwh) - totalCost(cumBefore)
     const cumBefore = monthKwhRunning[mk] ?? 0
@@ -175,8 +191,19 @@ export function computeChartData(
     return { date: dailyDates[i], label: dailyLabels[i], dailyKwh: kwh, rolling7 }
   })
 
-  // --- Month series (only when ≥ 2 distinct months) ---
+  // --- Monthly costs (Doble vs Triple delta) ---
   const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  const monthlyCosts: MonthlyCost[] = Array.from(monthCostMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mk, { g3, g2, year }]) => {
+      const [, mm] = mk.split('-').map(Number)
+      const { R1 } = getRates(year, userRates)
+      const monthTotalKwh = monthKwhRunning[mk] ?? 0
+      const g1 = tariff1(monthTotalKwh, R1).cost
+      return { monthKey: mk, label: `${MONTH_LABELS[mm - 1]} ${mk.split('-')[0]}`, g3, g2, g1 }
+    })
+
+  // --- Month series (only when ≥ 2 distinct months) ---
   const monthSeries: MonthSeries[] = monthMap.size >= 2
     ? Array.from(monthMap.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -192,5 +219,6 @@ export function computeChartData(
     cumulativeCosts,
     rollingDays,
     monthSeries,
+    monthlyCosts,
   }
 }

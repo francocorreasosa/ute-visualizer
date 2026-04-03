@@ -130,6 +130,7 @@ export default function ResultsSection({
           dayCount={allDates.length}
           isMultiYear={detectedYears.length > 1}
           puntaStart={puntaStart}
+          monthlyCosts={chartData.monthlyCosts}
         />
       </div>
     </div>
