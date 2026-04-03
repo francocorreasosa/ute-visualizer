@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmt, formatDateShort, parseNum } from '../format'
+import { fmt, fmtFull, formatDateShort, parseNum } from '../format'
 
 describe('fmt', () => {
   it('formats numbers below 1000 as dollars', () => {
@@ -16,6 +16,34 @@ describe('fmt', () => {
     expect(fmt(3500)).toBe('$3.5k')
     expect(fmt(12000)).toBe('$12.0k')
     expect(fmt(1234)).toBe('$1.2k')
+  })
+})
+
+describe('fmtFull', () => {
+  it('starts with $ sign', () => {
+    expect(fmtFull(100).startsWith('$')).toBe(true)
+    expect(fmtFull(3300).startsWith('$')).toBe(true)
+  })
+
+  it('rounds to nearest integer', () => {
+    // Compare against the same toLocaleString call to avoid locale differences
+    expect(fmtFull(3300.4)).toBe('$' + Math.round(3300.4).toLocaleString('es-UY'))
+    expect(fmtFull(3300.6)).toBe('$' + Math.round(3300.6).toLocaleString('es-UY'))
+  })
+
+  it('values below 1000 are not abbreviated', () => {
+    // Unlike fmt(), fmtFull() never uses k notation
+    expect(fmtFull(999)).not.toContain('k')
+    expect(fmtFull(500)).toBe('$' + (500).toLocaleString('es-UY'))
+  })
+
+  it('values above 1000 are not abbreviated', () => {
+    expect(fmtFull(3300)).not.toContain('k')
+    expect(fmtFull(3300)).toBe('$' + (3300).toLocaleString('es-UY'))
+  })
+
+  it('zero formats correctly', () => {
+    expect(fmtFull(0)).toBe('$' + (0).toLocaleString('es-UY'))
   })
 })
 

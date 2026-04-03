@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeAll } from '../compute'
-import type { MergedData } from '../types'
+import type { MergedData, EVConfig } from '../types'
 
 const NO_RATES = {}
 const NO_FERIADOS = {}
@@ -92,6 +92,74 @@ describe('computeAll — puntaStart', () => {
     const data = singleHour('2026-03-31', 17, 4) // Monday
     const { stats } = computeAll(data, NO_RATES, NO_FERIADOS, false, 18)
     expect(stats.punta.kwh).toBeCloseTo(0)
+  })
+})
+
+// ─── EV simulator (evConfig) ─────────────────────────────────────────────────
+//
+// Config: 300 km/month, 60 kWh battery, 300 km range, 100% efficiency, 2 kW charger
+// dailyKwh = (300/30) × (60/300) / 1 = 2 kWh/day
+// hoursNeeded = 2/2 = 1.0 → h=0 gets exactly 2 kW added (Valle rate: 2.98)
+//
+// Base data: 2026-03-31 (Monday), h=10, 5 kWh (Llano: 6.309)
+// With EV: h=0 adds 2 kWh (Valle: 2.98) → totalKwh = 7
+//
+describe('computeAll — evConfig', () => {
+  const data = singleHour('2026-03-31', 10, 5)
+  const evConfig: EVConfig = {
+    enabled: true,
+    monthlyKm: 300,
+    batteryKwh: 60,
+    rangeKm: 300,
+    chargingKw: 2,
+    chargeStart: 0,
+    chargeEnd: 1,
+    efficiency: 100,
+  }
+
+  it('adds EV load to totalKwh', () => {
+    const { stats } = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, evConfig)
+    expect(stats.totalKwh).toBeCloseTo(7) // 5 base + 2 EV
+  })
+
+  it('EV kWh at h=0 lands in Valle band', () => {
+    const { stats } = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, evConfig)
+    expect(stats.valle.kwh).toBeCloseTo(2)
+  })
+
+  it('g3 cost includes EV kWh at Valle rate', () => {
+    const { comparison } = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, evConfig)
+    const expected = 5 * 6.309 + 2 * 2.98
+    expect(comparison.g3).toBeCloseTo(expected, 1)
+  })
+
+  it('g3 without evConfig is lower than with it', () => {
+    const without = computeAll(data, NO_RATES, NO_FERIADOS, false, 17)
+    const withEV = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, evConfig)
+    expect(withEV.comparison.g3).toBeGreaterThan(without.comparison.g3)
+  })
+
+  it('disabled evConfig has no effect', () => {
+    const without = computeAll(data, NO_RATES, NO_FERIADOS, false, 17)
+    const withDisabled = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, { ...evConfig, enabled: false })
+    expect(withDisabled.stats.totalKwh).toBeCloseTo(without.stats.totalKwh)
+  })
+
+  it('overnight window adds EV load across midnight correctly', () => {
+    // 3000 km/month, 7 kW charger, window 22→6 → ~20 kWh/day spread over ~2.86h
+    const overnight: EVConfig = {
+      enabled: true,
+      monthlyKm: 3000,
+      batteryKwh: 60,
+      rangeKm: 300,
+      chargingKw: 7,
+      chargeStart: 22,
+      chargeEnd: 6,
+      efficiency: 100,
+    }
+    const { stats } = computeAll(data, NO_RATES, NO_FERIADOS, false, 17, overnight)
+    // base 5 kWh + ~20 kWh EV = ~25 kWh
+    expect(stats.totalKwh).toBeCloseTo(25, 0)
   })
 })
 

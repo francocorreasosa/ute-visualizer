@@ -1,6 +1,7 @@
 import type {
   MergedData,
   YearRates,
+  EVConfig,
   ComputeResult,
   BandCosts,
   BandCosts2,
@@ -9,7 +10,7 @@ import type {
   BandKwh2,
   BandKwhSimple,
 } from './types'
-import { tariff3, tariff2, tariff1, dateInfo, getRates, adj } from './tariffs'
+import { tariff3, tariff2, tariff1, dateInfo, getRates, adj, evHourlyKw } from './tariffs'
 
 /**
  * Core computation: single pass over all dates to compute maxV, stats, and
@@ -23,7 +24,8 @@ export function computeAll(
   userRates: Record<number, Partial<YearRates>>,
   feriadosMap: Record<string, string>,
   evMode: boolean,
-  puntaStart = 17
+  puntaStart = 17,
+  evConfig?: EVConfig
 ): ComputeResult {
   const allDates = Object.keys(mergedData).sort()
 
@@ -68,8 +70,10 @@ export function computeAll(
     const mk = `${y}-${m}`
     if (!monthKwh.has(mk)) monthKwh.set(mk, { kwh: 0, year: info.year })
     for (let h = 0; h < 24; h++) {
-      const v = adj(mergedData[dk]?.[h] ?? null, evMode)
-      if (v == null) continue
+      const base = adj(mergedData[dk]?.[h] ?? null, evMode)
+      const evLoad = evConfig ? evHourlyKw(h, evConfig) : 0
+      if (base == null && evLoad === 0) continue
+      const v = (base ?? 0) + evLoad
       allV.push(v)
       monthKwh.get(mk)!.kwh += v
       const t3 = tariff3(h, info.isOffPeak, R3, puntaStart)

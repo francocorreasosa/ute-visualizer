@@ -1,4 +1,5 @@
 import type { ComputedComparison, ComputedStats } from '@/lib/types'
+import type { MonthlyCost } from '@/lib/chartData'
 import { fmt } from '@/lib/format'
 import PlanCard from './PlanCard'
 import DiffBar from './DiffBar'
@@ -9,9 +10,10 @@ interface Props {
   dayCount: number
   isMultiYear: boolean
   puntaStart: number
+  monthlyCosts: MonthlyCost[]
 }
 
-export default function CompareSection({ comparison, stats, dayCount, isMultiYear, puntaStart }: Props) {
+export default function CompareSection({ comparison, stats, dayCount, isMultiYear, puntaStart, monthlyCosts }: Props) {
   const { g3, g2, g1, c3, c2, c1, k3, k2, k1 } = comparison
   const { totalKwh } = stats
   const puntaLabel = `${puntaStart}–${puntaStart + 3}`
@@ -88,6 +90,7 @@ export default function CompareSection({ comparison, stats, dayCount, isMultiYea
         g1={g1}
         dayCount={dayCount}
         isMultiYear={isMultiYear}
+        monthlyCosts={monthlyCosts}
       />
     </div>
   )
