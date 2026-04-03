@@ -13,6 +13,7 @@ import Header from '@/components/Header'
 import UploadZone from '@/components/UploadZone'
 import TariffEditor from '@/components/TariffEditor'
 import FeriadosSection from '@/components/FeriadosSection'
+import EVSimulator from '@/components/EVSimulator'
 import ResultsSection from '@/components/ResultsSection'
 import EmptyState from '@/components/EmptyState'
 import Tooltip from '@/components/Tooltip'
@@ -21,27 +22,27 @@ import TabBar from '@/components/TabBar'
 
 export default function Page() {
   const [state, dispatch] = useAppState()
-  const { mergedData, loadedFiles, detectedYears, userRates, feriadosMap, evMode, puntaStart, tooltip } = state
+  const { mergedData, loadedFiles, detectedYears, userRates, feriadosMap, evMode, evConfig, puntaStart, tooltip } = state
   const [activeTab, setActiveTab] = useState<'heatmap' | 'charts'>('heatmap')
 
   // Single computation pass — only re-runs when inputs change
   const { allDates, maxV, stats, comparison } = useMemo(
-    () => computeAll(mergedData, userRates, feriadosMap, evMode, puntaStart),
-    [mergedData, userRates, feriadosMap, evMode, puntaStart]
+    () => computeAll(mergedData, userRates, feriadosMap, evMode, puntaStart, evConfig),
+    [mergedData, userRates, feriadosMap, evMode, puntaStart, evConfig]
   )
 
   const chartData = useMemo(
-    () => computeChartData(mergedData, userRates, feriadosMap, evMode, puntaStart),
-    [mergedData, userRates, feriadosMap, evMode, puntaStart]
+    () => computeChartData(mergedData, userRates, feriadosMap, evMode, puntaStart, evConfig),
+    [mergedData, userRates, feriadosMap, evMode, puntaStart, evConfig]
   )
 
   // Compute best cost for each punta option to show optimal recommendation
   const puntaAnalysis = useMemo(() =>
     ([17, 18, 19] as const).map(ps => {
-      const { comparison } = computeAll(mergedData, userRates, feriadosMap, evMode, ps)
+      const { comparison } = computeAll(mergedData, userRates, feriadosMap, evMode, ps, evConfig)
       return { ps, best: Math.min(comparison.g3, comparison.g2, comparison.g1) }
     }),
-    [mergedData, userRates, feriadosMap, evMode]
+    [mergedData, userRates, feriadosMap, evMode, evConfig]
   )
 
   const hasData = allDates.length > 0
@@ -118,19 +119,12 @@ export default function Page() {
           onRemove={(date) => dispatch({ type: 'REMOVE_FERIADO', payload: date })}
         />
 
-        {/* EV Mode toggle */}
-        <div className="w-full mb-4 flex items-center justify-center gap-[10px] font-mono text-[12px]">
-          <label className="flex items-center gap-2 cursor-pointer bg-card border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2">
-            <input
-              type="checkbox"
-              checked={evMode}
-              onChange={(e) => dispatch({ type: 'SET_EV_MODE', payload: e.target.checked })}
-              className="w-4 h-4 cursor-pointer accent-orange"
-            />
-            <span className="text-[#9ca3af]">🚗 Simular sin auto eléctrico</span>
-            <span className="text-text-dim text-[10px]">(resta 6.5 kWh a horas &gt; 7 kWh)</span>
-          </label>
-        </div>
+        <EVSimulator
+          evMode={evMode}
+          onEvModeChange={(v) => dispatch({ type: 'SET_EV_MODE', payload: v })}
+          evConfig={evConfig}
+          onChange={(patch) => dispatch({ type: 'SET_EV_CONFIG', payload: patch })}
+        />
 
         <button
           className="border-none rounded-lg px-7 py-[10px] text-white font-mono text-[13px] font-bold cursor-pointer mb-6 block transition-transform hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,107,43,0.3)]"

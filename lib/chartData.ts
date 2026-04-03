@@ -1,5 +1,5 @@
-import type { MergedData, YearRates } from './types'
-import { dateInfo, getRates, tariff3, tariff2, tariff1, adj } from './tariffs'
+import type { MergedData, YearRates, EVConfig } from './types'
+import { dateInfo, getRates, tariff3, tariff2, tariff1, adj, evHourlyKw } from './tariffs'
 
 export interface HourProfile {
   hour: number
@@ -58,7 +58,8 @@ export function computeChartData(
   userRates: Record<number, Partial<YearRates>>,
   feriadosMap: Record<string, string>,
   evMode: boolean,
-  puntaStart = 17
+  puntaStart = 17,
+  evConfig?: EVConfig
 ): ChartData {
   const allDates = Object.keys(mergedData).sort()
 
@@ -113,8 +114,10 @@ export function computeChartData(
 
     for (let h = 0; h < 24; h++) {
       const raw = mergedData[dk]?.[h] ?? null
-      const v = adj(raw, evMode)
-      if (v == null) continue
+      const base = adj(raw, evMode)
+      const evLoad = evConfig ? evHourlyKw(h, evConfig) : 0
+      if (base == null && evLoad === 0) continue
+      const v = (base ?? 0) + evLoad
 
       dayKwh += v
 

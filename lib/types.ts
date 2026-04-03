@@ -72,6 +72,17 @@ export interface TooltipState {
   content: TooltipContent | null
 }
 
+export interface EVConfig {
+  enabled: boolean
+  monthlyKm: number
+  batteryKwh: number
+  rangeKm: number
+  chargingKw: number
+  chargeStart: number   // 0–23 hour (inclusive)
+  chargeEnd: number     // 0–23 hour (exclusive, wraps if < chargeStart)
+  efficiency: number    // charging efficiency %, e.g. 90
+}
+
 export interface AppState {
   mergedData: MergedData
   loadedFiles: LoadedFile[]
@@ -79,6 +90,7 @@ export interface AppState {
   userRates: Record<number, Partial<YearRates>>
   feriadosMap: Record<string, string>
   evMode: boolean
+  evConfig: EVConfig
   puntaStart: 17 | 18 | 19
   tooltip: TooltipState
 }
@@ -91,6 +103,7 @@ export type Action =
   | { type: 'ADD_FERIADO'; payload: { date: string; name: string } }
   | { type: 'REMOVE_FERIADO'; payload: string }
   | { type: 'SET_EV_MODE'; payload: boolean }
+  | { type: 'SET_EV_CONFIG'; payload: Partial<EVConfig> }
   | { type: 'SET_PUNTA_START'; payload: 17 | 18 | 19 }
   | { type: 'SHOW_TOOLTIP'; payload: TooltipState }
   | { type: 'HIDE_TOOLTIP' }

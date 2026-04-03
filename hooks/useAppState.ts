@@ -9,6 +9,16 @@ const initialState: AppState = {
   userRates: {},
   feriadosMap: { ...INITIAL_FERIADOS_MAP },
   evMode: false,
+  evConfig: {
+    enabled: false,
+    monthlyKm: 1000,
+    batteryKwh: 40,
+    rangeKm: 300,
+    chargingKw: 7,
+    chargeStart: 22,
+    chargeEnd: 6,
+    efficiency: 90,
+  },
   puntaStart: 17,
   tooltip: { visible: false, x: 0, y: 0, content: null },
 }
@@ -77,6 +87,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_EV_MODE':
       return { ...state, evMode: action.payload }
+
+    case 'SET_EV_CONFIG':
+      return { ...state, evConfig: { ...state.evConfig, ...action.payload } }
 
     case 'SET_PUNTA_START':
       return { ...state, puntaStart: action.payload }
