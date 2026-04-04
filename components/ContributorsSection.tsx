@@ -1,24 +1,23 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
 interface Contributor {
   login: string
   html_url: string
   contributions: number
 }
 
-async function getContributors(): Promise<Contributor[]> {
-  try {
-    const res = await fetch(
-      'https://api.github.com/repos/francocorreasosa/ute-visualizer/contributors',
-      { next: { revalidate: 3600 } }
-    )
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
-  }
-}
+export default function ContributorsSection() {
+  const [contributors, setContributors] = useState<Contributor[]>([])
 
-export default async function ContributorsSection() {
-  const contributors = await getContributors()
+  useEffect(() => {
+    fetch('https://api.github.com/repos/francocorreasosa/ute-visualizer/contributors')
+      .then(res => res.ok ? res.json() : [])
+      .catch(() => [])
+      .then(setContributors)
+  }, [])
+
   if (contributors.length === 0) return null
 
   return (
