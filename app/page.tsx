@@ -8,6 +8,7 @@ import { computeChartData } from '@/lib/chartData'
 import { DEMO_CSV } from '@/lib/constants'
 import { parseNum } from '@/lib/format'
 import type { YearRates, TooltipState } from '@/lib/types'
+import { analytics } from '@/lib/analytics'
 
 import Header from '@/components/Header'
 import UploadZone from '@/components/UploadZone'
@@ -53,6 +54,7 @@ export default function Page() {
       const reader = new FileReader()
       reader.onload = (e) => {
         const result = parseCSV(e.target!.result as string)
+        analytics.fileUploaded(result.days, result.years)
         dispatch({
           type: 'MERGE_DATA',
           payload: {
@@ -68,6 +70,7 @@ export default function Page() {
 
   function loadDemo() {
     const result = parseCSV(DEMO_CSV)
+    analytics.demoLoaded()
     dispatch({
       type: 'MERGE_DATA',
       payload: {
@@ -121,7 +124,7 @@ export default function Page() {
 
         <EVSimulator
           evMode={evMode}
-          onEvModeChange={(v) => dispatch({ type: 'SET_EV_MODE', payload: v })}
+          onEvModeChange={(v) => { analytics.evSimulatorToggled(v); dispatch({ type: 'SET_EV_MODE', payload: v }) }}
           evConfig={evConfig}
           onChange={(patch) => dispatch({ type: 'SET_EV_CONFIG', payload: patch })}
         />
@@ -139,12 +142,12 @@ export default function Page() {
       {/* Results — full viewport width so heatmap doesn't force-scroll on wide screens */}
       {hasData ? (
         <>
-          <TabBar activeTab={activeTab} onChange={setActiveTab} />
+          <TabBar activeTab={activeTab} onChange={(tab) => { analytics.tabChanged(tab); setActiveTab(tab) }} />
           <ResultsSection
             activeTab={activeTab}
             puntaStart={puntaStart}
             puntaAnalysis={puntaAnalysis}
-            onPuntaChange={(v) => dispatch({ type: 'SET_PUNTA_START', payload: v })}
+            onPuntaChange={(v) => { analytics.puntaStartChanged(v); dispatch({ type: 'SET_PUNTA_START', payload: v }) }}
             allDates={allDates}
             mergedData={mergedData}
             fileCount={loadedFiles.length}
