@@ -19,6 +19,7 @@ import ResultsSection from '@/components/ResultsSection'
 import EmptyState from '@/components/EmptyState'
 import Tooltip from '@/components/Tooltip'
 import LegalDisclaimer from '@/components/LegalDisclaimer'
+import ContributorsSection from '@/components/ContributorsSection'
 import TabBar from '@/components/TabBar'
 
 export default function Page() {
@@ -91,9 +92,9 @@ export default function Page() {
   }, [dispatch])
 
   return (
-    <main className="min-h-screen flex flex-col items-center px-5 py-9 pb-12">
-      {/* Controls column — constrained to 860px for readability */}
-      <div className="w-full max-w-content flex flex-col items-center">
+    <main className="min-h-screen flex flex-col lg:flex-row lg:items-start">
+      {/* Sidebar — inputs, sticky on desktop */}
+      <aside className="w-full lg:w-[480px] lg:flex-shrink-0 flex flex-col items-center px-5 py-9 lg:h-screen lg:sticky lg:top-0 lg:overflow-y-auto lg:border-r lg:border-[rgba(255,255,255,0.06)]">
         <Header />
 
         <UploadZone
@@ -137,40 +138,40 @@ export default function Page() {
           Recalcular
         </button>
 
-      </div>
-
-      {/* Results — full viewport width so heatmap doesn't force-scroll on wide screens */}
-      {hasData ? (
-        <>
-          <TabBar activeTab={activeTab} onChange={(tab) => { analytics.tabChanged(tab); setActiveTab(tab) }} />
-          <ResultsSection
-            activeTab={activeTab}
-            puntaStart={puntaStart}
-            puntaAnalysis={puntaAnalysis}
-            onPuntaChange={(v) => { analytics.puntaStartChanged(v); dispatch({ type: 'SET_PUNTA_START', payload: v }) }}
-            allDates={allDates}
-            mergedData={mergedData}
-            fileCount={loadedFiles.length}
-            detectedYears={detectedYears}
-            userRates={userRates}
-            feriadosMap={feriadosMap}
-            maxV={maxV}
-            evMode={evMode}
-            evConfig={evConfig}
-            stats={stats}
-            comparison={comparison}
-            chartData={chartData}
-            onCellHover={handleCellHover}
-            onCellLeave={handleCellLeave}
-          />
-        </>
-      ) : (
-        <EmptyState />
-      )}
-
-      <div className="w-full max-w-content">
         <LegalDisclaimer />
-      </div>
+        <ContributorsSection />
+      </aside>
+
+      {/* Results panel — flex-1 min-w-0 prevents heatmap from overflowing flex container */}
+      <section className="flex-1 min-w-0 flex flex-col items-center px-5 py-9">
+        {hasData ? (
+          <>
+            <TabBar activeTab={activeTab} onChange={(tab) => { analytics.tabChanged(tab); setActiveTab(tab) }} />
+            <ResultsSection
+              activeTab={activeTab}
+              puntaStart={puntaStart}
+              puntaAnalysis={puntaAnalysis}
+              onPuntaChange={(v) => { analytics.puntaStartChanged(v); dispatch({ type: 'SET_PUNTA_START', payload: v }) }}
+              allDates={allDates}
+              mergedData={mergedData}
+              fileCount={loadedFiles.length}
+              detectedYears={detectedYears}
+              userRates={userRates}
+              feriadosMap={feriadosMap}
+              maxV={maxV}
+              evMode={evMode}
+              evConfig={evConfig}
+              stats={stats}
+              comparison={comparison}
+              chartData={chartData}
+              onCellHover={handleCellHover}
+              onCellLeave={handleCellLeave}
+            />
+          </>
+        ) : (
+          <EmptyState />
+        )}
+      </section>
 
       <Tooltip state={tooltip} />
     </main>

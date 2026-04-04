@@ -33,11 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       `}</Script>
       <body className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans bg-bg text-text-primary`}>
         {children}
-        <div className="flex justify-center px-5 pb-9">
-          <div className="w-full max-w-content">
-            <ContributorsSection />
-          </div>
-        </div>
       </body>
     </html>
   )

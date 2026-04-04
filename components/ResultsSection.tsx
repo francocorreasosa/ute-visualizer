@@ -66,7 +66,7 @@ export default function ResultsSection({
 
       {activeTab === 'heatmap' ? (
         /* Heatmap card — intrinsic width, centered */
-        <div className="bg-surface rounded-[14px] px-5 py-6 pb-4 border border-[rgba(255,255,255,0.06)] shadow-[0_24px_64px_rgba(0,0,0,0.55)] overflow-x-auto max-w-[calc(100vw-40px)]">
+        <div className="bg-surface rounded-[14px] px-5 py-6 pb-4 border border-[rgba(255,255,255,0.06)] shadow-[0_24px_64px_rgba(0,0,0,0.55)] overflow-x-auto max-w-full">
           <div className="flex justify-center">
             <Heatmap
               allDates={allDates}
